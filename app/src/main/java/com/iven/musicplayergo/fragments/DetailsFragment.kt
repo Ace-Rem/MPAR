@@ -430,6 +430,14 @@ class DetailsFragment : Fragment(), SearchView.OnQueryTextListener {
             if (updateAdapter) _detailsFragmentBinding?.songsRv?.adapter?.notifyDataSetChanged()
             if (updateSongs) mMediaControlInterface.onUpdatePlayingAlbumSongs(mSongsList)
         }
+
+        _detailsFragmentBinding?.run {
+            val isEmptyList = mSongsList.isNullOrEmpty()
+            songsRv.handleViewVisibility(show = !isEmptyList)
+            
+            // THÊM DẤU ?. VÀO TRƯỚC HÀM handleViewVisibility
+            emptyStateText?.handleViewVisibility(show = isEmptyList)
+        }
     }
 
     private fun getDefSortingIcon() = if (sShowDisplayName) {
@@ -450,13 +458,14 @@ class DetailsFragment : Fragment(), SearchView.OnQueryTextListener {
         actionMode = null
     }
 
-    private fun updateActionModeState() {
+private fun updateActionModeState() {
         actionMode?.title = mSelectionController.selectionCount().toString()
         actionMode?.menu?.findItem(R.id.action_hide)?.isVisible = false
         actionMode?.menu?.findItem(R.id.action_select_all)?.isVisible =
             mSelectionController.selectionCount() < (mSongsList?.size ?: 0)
         actionMode?.menu?.findItem(R.id.action_clear_selection)?.isVisible =
             mSelectionController.hasSelection()
+
     }
 
     private fun updateSongSelectionBackground(view: View, selected: Boolean) {
@@ -477,7 +486,16 @@ class DetailsFragment : Fragment(), SearchView.OnQueryTextListener {
             return true
         }
 
-        override fun onPrepareActionMode(mode: ActionMode?, menu: Menu?) = false
+        override fun onPrepareActionMode(mode: ActionMode?, menu: Menu?): Boolean {
+        val iconColor = Theming.resolveColorAttr(requireContext(), android.R.attr.textColorPrimary)
+        
+        menu?.let {
+            for (i in 0 until it.size()) {
+                it.getItem(i).icon?.mutate()?.setTint(iconColor)
+            }
+        }
+        return true
+    }
 
         override fun onActionItemClicked(mode: ActionMode?, item: MenuItem?): Boolean {
             return when (item?.itemId) {
@@ -491,6 +509,7 @@ class DetailsFragment : Fragment(), SearchView.OnQueryTextListener {
                     stopActionMode()
                     true
                 }
+                
                 R.id.action_select_all -> {
                     mSelectionController.selectAll(mSongsList.orEmpty().mapNotNull { song -> song.id })
                     _detailsFragmentBinding?.songsRv?.adapter?.notifyDataSetChanged()

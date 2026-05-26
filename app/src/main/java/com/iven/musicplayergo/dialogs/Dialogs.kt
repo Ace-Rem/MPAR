@@ -89,7 +89,7 @@ object Dialogs {
         enabledSwitch.isChecked = initialValue?.enabled ?: false
         startVolumeInput.setText((initialValue?.startVolumePercent ?: MediaPlayerHolder.getInstance().currentVolumeInPercent).toString())
         endVolumeInput.setText((initialValue?.endVolumePercent ?: 20).toString())
-        stepMinutesInput.setText((initialValue?.stepMinutes ?: 1).toString())
+        stepMinutesInput.setText((initialValue?.stepMinutes ?: 1f).toString())
         updateSelectedTimeLabel()
 
         selectTimeButton.setOnClickListener {
@@ -116,7 +116,8 @@ object Dialogs {
                     startMinute = selectedMinute,
                     startVolumePercent = startVolumeInput.text?.toString()?.toIntOrNull()?.coerceIn(0, 100) ?: 0,
                     endVolumePercent = endVolumeInput.text?.toString()?.toIntOrNull()?.coerceIn(0, 100) ?: 0,
-                    stepMinutes = stepMinutesInput.text?.toString()?.toIntOrNull()?.coerceAtLeast(1) ?: 1
+                    
+                    stepMinutes = stepMinutesInput.text?.toString()?.toFloatOrNull()?.coerceAtLeast(0.1f) ?: 1f
                 )
                 onConfirmed(config)
             }

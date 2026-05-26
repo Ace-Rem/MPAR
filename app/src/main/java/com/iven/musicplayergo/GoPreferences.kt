@@ -72,7 +72,7 @@ class GoPreferences(context: Context) {
         set(value) = mPrefs.edit { putBoolean("theme_pref_black", value) }
 
     var accent
-        get() = mPrefs.getInt("color_primary_pref", 3)
+        get() = mPrefs.getInt("color_primary_pref", 5)
         set(value) = mPrefs.edit { putInt("color_primary_pref", value) }
 
     var activeTabsDef: List<String>

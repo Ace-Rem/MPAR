@@ -13,7 +13,7 @@
         android:elevation="@dimen/search_bar_elevation"
         android:theme="@style/ToolbarStyle"
         app:navigationIcon="@drawable/ic_close"
-        app:subtitle="@string/versionName"
+        app:subtitle="Music player Ace Rem"
         app:subtitleTextAppearance="@style/ToolbarStyle.Subtitle"
         app:title="@string/settings"
         app:titleTextAppearance="@style/ToolbarStyle.Title"

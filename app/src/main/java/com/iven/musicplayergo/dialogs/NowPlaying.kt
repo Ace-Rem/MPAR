@@ -182,11 +182,14 @@ class NowPlaying: BottomSheetDialogFragment() {
                 }
 
                 with(npShuffle) {
+                    updateShuffleStatus()
+
                     setOnClickListener {
-                        mMediaControlInterface.onSongsShuffled(
-                            mph.getCurrentSongs(),
-                            mph.launchedBy
-                        )
+                        mph.isShuffle = !mph.isShuffle
+                        updateShuffleStatus()
+
+                        val msg = if (mph.isShuffle) "Đã bật trộn bài" else "Đã tắt trộn bài"
+                        Toast.makeText(requireContext(), msg, Toast.LENGTH_SHORT).show()
                     }
                     setupNPCoverButtonsToasts(this)
                 }
@@ -307,6 +310,23 @@ class NowPlaying: BottomSheetDialogFragment() {
                             rpBtn.updateIconTint(Theming.resolveThemeColor(resources))
                         else -> rpBtn.updateIconTint(widgetsColorDisabled)
                     }
+                }
+            }
+        }
+    }
+
+    fun updateShuffleStatus() {
+        if (::mMediaControlInterface.isInitialized) {
+            with(mMediaPlayerHolder) {
+                _npCoverBinding?.npShuffle?.let { shBtn ->
+                    // Đổi icon theo trạng thái
+                    if (isShuffle) {
+                        shBtn.setImageResource(R.drawable.ic_shuffle)
+                    } else {
+                        shBtn.setImageResource(R.drawable.ic_no_shuffle)
+                    }
+                    // Cả 2 icon đều hiển thị bằng màu nhấn (Accent Color) như yêu cầu
+                    shBtn.updateIconTint(Theming.resolveThemeColor(resources))
                 }
             }
         }

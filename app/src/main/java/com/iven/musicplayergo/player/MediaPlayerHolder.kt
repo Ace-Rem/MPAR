@@ -179,6 +179,7 @@ class MediaPlayerHolder:
     private val sPlaybackSpeedPersisted get() = GoPreferences.getPrefsInstance().playbackSpeedMode != GoConstants.PLAYBACK_SPEED_ONE_ONLY
     var isRepeat1X = false
     var isLooping = false
+    var isShuffle = false
     private val continueOnEnd get() = GoPreferences.getPrefsInstance().continueOnEnd
 
     // isQueue saves the current song when queue starts
@@ -520,11 +521,33 @@ class MediaPlayerHolder:
         var listToSeek = mPlayingSongs
         if (isQueue != null) listToSeek = queueSongs
 
+        val listSize = listToSeek?.size ?: 0
+
         try {
             if (isNext) {
+                if (isShuffle && listSize > 1) {
+                    val currentIndex = listToSeek!!.findIndex(currentSong)
+                    var randomIndex: Int
+                    do {
+                        randomIndex = (0 until listSize).random()
+                    } while (randomIndex == currentIndex)
+                    return listToSeek[randomIndex]
+                }
+                
                 return listToSeek?.get(listToSeek.findIndex(currentSong).plus(1))
             }
+            
+            if (isShuffle && listSize > 1) {
+                val currentIndex = listToSeek!!.findIndex(currentSong)
+                var randomIndex: Int
+                do {
+                    randomIndex = (0 until listSize).random()
+                } while (randomIndex == currentIndex)
+                return listToSeek[randomIndex]
+            }
+            
             return listToSeek?.get(listToSeek.findIndex(currentSong).minus(1))
+
         } catch (e: IndexOutOfBoundsException) {
             e.printStackTrace()
             when {
@@ -993,7 +1016,6 @@ class MediaPlayerHolder:
 
     /* Sets the volume of the media player */
     fun setPreciseVolume(percent: Int) {
-
         currentVolumeInPercent = percent
         GoPreferences.getPrefsInstance().latestVolume = percent
 
@@ -1005,8 +1027,13 @@ class MediaPlayerHolder:
             val new = volFromPercent(percent)
             mediaPlayer.setVolume(new, new)
         }
-        if (::mediaPlayerInterface.isInitialized) {
-            mediaPlayerInterface.onPlayerVolumeChanged(percent)
+        
+        try {
+            if (::mediaPlayerInterface.isInitialized) {
+                mediaPlayerInterface.onPlayerVolumeChanged(percent)
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
     }
 
@@ -1046,7 +1073,10 @@ class MediaPlayerHolder:
 
         val targetVolume = config.endVolumePercent.coerceIn(0, 100)
         var currentVolume = config.startVolumePercent.coerceIn(0, 100)
-        val stepMillis = TimeUnit.MINUTES.toMillis(config.stepMinutes.coerceAtLeast(1).toLong())
+        
+        // SỬA CÔNG THỨC: Nhân 60.000 để chuyển Float (phút) sang Long (mili-giây)
+        val stepMillis = (config.stepMinutes.coerceAtLeast(0.1f) * 60 * 1000).toLong()
+        
         val isIncreasing = targetVolume >= currentVolume
         var firstTick = true
 
@@ -1061,23 +1091,30 @@ class MediaPlayerHolder:
 
         mVolumeAutomationExecutor = Executors.newSingleThreadScheduledExecutor()
         mVolumeAutomationFuture = mVolumeAutomationExecutor?.scheduleAtFixedRate({
-            if (firstTick) {
-                firstTick = false
+            // BỌC TOÀN BỘ LOGIC VÀO TRY-CATCH
+            try {
+                if (firstTick) {
+                    firstTick = false
+                    setPreciseVolume(currentVolume)
+                    if (currentVolume == targetVolume) {
+                        cancelSleepVolumeAutomation(clearPrefs = false)
+                    }
+                    return@scheduleAtFixedRate
+                }
+
+                currentVolume = if (isIncreasing) {
+                    (currentVolume + 1).coerceAtMost(targetVolume)
+                } else {
+                    (currentVolume - 1).coerceAtLeast(targetVolume)
+                }
+                
                 setPreciseVolume(currentVolume)
+                
                 if (currentVolume == targetVolume) {
                     cancelSleepVolumeAutomation(clearPrefs = false)
                 }
-                return@scheduleAtFixedRate
-            }
-
-            currentVolume = if (isIncreasing) {
-                (currentVolume + 1).coerceAtMost(targetVolume)
-            } else {
-                (currentVolume - 1).coerceAtLeast(targetVolume)
-            }
-            setPreciseVolume(currentVolume)
-            if (currentVolume == targetVolume) {
-                cancelSleepVolumeAutomation(clearPrefs = false)
+            } catch (e: Exception) {
+                e.printStackTrace() // Đảm bảo thread không bao giờ bị chết âm thầm
             }
         }, initialDelay, stepMillis, TimeUnit.MILLISECONDS)
     }

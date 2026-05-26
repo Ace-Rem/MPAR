@@ -248,8 +248,16 @@ class AllMusicFragment : Fragment(), SearchView.OnQueryTextListener {
             return true
         }
 
-        override fun onPrepareActionMode(mode: ActionMode?, menu: Menu?) = false
-
+                override fun onPrepareActionMode(mode: ActionMode?, menu: Menu?): Boolean {
+        val iconColor = Theming.resolveColorAttr(requireContext(), android.R.attr.textColorPrimary)
+        
+        menu?.let {
+            for (i in 0 until it.size()) {
+                it.getItem(i).icon?.mutate()?.setTint(iconColor)
+            }
+        }
+        return true
+    }
         override fun onActionItemClicked(mode: ActionMode?, item: MenuItem?): Boolean {
             return when (item?.itemId) {
                 R.id.action_add_to_playlist -> {

@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="red">#d32f2f</color>
+    <color name="red">#D70B0B</color>
     <color name="pink">#c2185b</color>
     <color name="purple">#7b1fa2</color>
     <color name="deep_purple">#512da8</color>
     <color name="indigo">#303f9f</color>
-    <color name="blue">#1976d2</color>
+    <color name="blue">#3852B4</color>
     <color name="light_blue">#0288d1</color>
     <color name="cyan">#0097a7</color>
     <color name="teal">#00796b</color>
@@ -14,7 +14,7 @@
     <color name="lime">#afb42b</color>
     <color name="yellow">#fbc02d</color>
     <color name="amber">#ffa000</color>
-    <color name="orange">#f57c00</color>
+    <color name="orange">#FF5722</color>
     <color name="deep_orange">#e64a19</color>
     <color name="brown">#5d4037</color>
     <color name="grey">#616161</color>

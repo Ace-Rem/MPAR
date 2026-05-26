@@ -9,5 +9,5 @@ data class SleepVolumeAutomation(
     val startMinute: Int,
     val startVolumePercent: Int,
     val endVolumePercent: Int,
-    val stepMinutes: Int
+    val stepMinutes: Float
 )

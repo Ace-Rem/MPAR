@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content">
 
@@ -13,6 +14,7 @@
             android:id="@+id/switch_enabled"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:minHeight="48dp"
             android:text="@string/automation_enabled" />
 
         <TextView
@@ -27,7 +29,9 @@
             style="@style/Widget.MaterialComponents.Button.OutlinedButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp" />
+            android:layout_marginTop="8dp"
+            tools:text="22:00"
+            tools:ignore="SpeakableTextPresentCheck" />
 
         <TextView
             android:layout_width="match_parent"
@@ -41,7 +45,10 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:ems="4"
-            android:inputType="number" />
+            android:inputType="number"
+            android:minHeight="48dp"
+            android:importantForAutofill="no"
+            tools:ignore="LabelFor,SpeakableTextPresentCheck" />
 
         <TextView
             android:layout_width="match_parent"
@@ -55,7 +62,10 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:ems="4"
-            android:inputType="number" />
+            android:inputType="number"
+            android:minHeight="48dp"
+            android:importantForAutofill="no"
+            tools:ignore="LabelFor,SpeakableTextPresentCheck" />
 
         <TextView
             android:layout_width="match_parent"
@@ -69,6 +79,10 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:ems="4"
-            android:inputType="number" />
+            android:inputType="numberDecimal"
+            android:minHeight="48dp"
+            android:importantForAutofill="no"
+            tools:ignore="LabelFor,SpeakableTextPresentCheck" />
+
     </LinearLayout>
 </ScrollView>
