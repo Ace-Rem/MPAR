@@ -32,6 +32,7 @@ import com.acerem.musicplayerar.databinding.MainActivityBinding
 import com.acerem.musicplayerar.databinding.PlayerControlsPanelBinding
 import com.acerem.musicplayerar.dialogs.Dialogs
 import com.acerem.musicplayerar.dialogs.NowPlaying
+import com.acerem.musicplayerar.dialogs.PlaylistSheet
 import com.acerem.musicplayerar.dialogs.RecyclerSheet
 import com.acerem.musicplayerar.equalizer.EqualizerActivity
 import com.acerem.musicplayerar.equalizer.EqualizerFragment
@@ -62,6 +63,7 @@ class MainActivity : BaseActivity(), UIControlInterface, MediaControlInterface {
 
     // Fragments
     private var mArtistsFragment: MusicContainersFragment? = null
+    private var mPlaylistsFragment: MusicContainersFragment? = null
     private var mAllMusicFragment: AllMusicFragment? = null
     private var mFoldersFragment: MusicContainersFragment? = null
     private var mAlbumsFragment: MusicContainersFragment? = null
@@ -90,6 +92,9 @@ class MainActivity : BaseActivity(), UIControlInterface, MediaControlInterface {
 
     // Sleep timer dialog
     private var mSleepTimerDialog: RecyclerSheet? = null
+
+    private var mPlaylistSheet: PlaylistSheet? = null
+    private var mPendingPlaylistSongs: List<Music> = emptyList()
 
     // Music player things
     private val mMediaPlayerHolder get() = MediaPlayerHolder.getInstance()
@@ -366,6 +371,7 @@ class MainActivity : BaseActivity(), UIControlInterface, MediaControlInterface {
                 override fun onPageSelected(position: Int) {
                     super.onPageSelected(position)
                     mArtistsFragment?.stopActionMode()
+                    mPlaylistsFragment?.stopActionMode()
                     mFoldersFragment?.stopActionMode()
                 }
             })
@@ -428,6 +434,7 @@ class MainActivity : BaseActivity(), UIControlInterface, MediaControlInterface {
 
     private fun initFragmentAt(position: Int): Fragment {
         when (mGoPreferences.activeTabs.toList()[position]) {
+            GoConstants.PLAYLISTS_TAB -> mPlaylistsFragment = MusicContainersFragment.newInstance(GoConstants.PLAYLIST_VIEW)
             GoConstants.ARTISTS_TAB -> mArtistsFragment = MusicContainersFragment.newInstance(GoConstants.ARTIST_VIEW)
             GoConstants.ALBUM_TAB -> mAlbumsFragment = MusicContainersFragment.newInstance(GoConstants.ALBUM_VIEW)
             GoConstants.SONGS_TAB -> mAllMusicFragment = AllMusicFragment.newInstance()
@@ -438,6 +445,7 @@ class MainActivity : BaseActivity(), UIControlInterface, MediaControlInterface {
     }
 
     private fun handleOnNavigationItemSelected(index: Int) = when (mGoPreferences.activeTabs.toList()[index]) {
+        GoConstants.PLAYLISTS_TAB -> mPlaylistsFragment ?: initFragmentAt(index)
         GoConstants.ARTISTS_TAB -> mArtistsFragment ?: initFragmentAt(index)
         GoConstants.ALBUM_TAB -> mAlbumsFragment ?: initFragmentAt(index)
         GoConstants.SONGS_TAB -> mAllMusicFragment ?: initFragmentAt(index)
@@ -472,19 +480,26 @@ class MainActivity : BaseActivity(), UIControlInterface, MediaControlInterface {
     private fun openDetailsFragment(
         selectedArtistOrFolder: String?,
         launchedBy: String,
-        selectedSongId: Long?
+        selectedSongId: Long?,
+        playlistId: Long? = null
     ) {
         if (!sDetailsFragmentExpanded) {
+            val playedAlbumPosition = if (launchedBy == GoConstants.ARTIST_VIEW) {
+                MusicUtils.getPlayingAlbumPosition(
+                    selectedArtistOrFolder,
+                    mMusicViewModel.deviceAlbumsByArtist
+                )
+            } else {
+                RecyclerView.NO_POSITION
+            }
             mDetailsFragment =
                 DetailsFragment.newInstance(
                     selectedArtistOrFolder,
                     launchedBy,
-                    MusicUtils.getPlayingAlbumPosition(
-                        selectedArtistOrFolder,
-                        mMusicViewModel.deviceAlbumsByArtist
-                    ),
+                    playedAlbumPosition,
                     selectedSongId,
-                    canUpdateSongs = mMediaPlayerHolder.currentSong?.artist == selectedArtistOrFolder
+                    canUpdateSongs = launchedBy == GoConstants.ARTIST_VIEW && mMediaPlayerHolder.currentSong?.artist == selectedArtistOrFolder,
+                    playlistId = playlistId
                 )
             sCloseDetailsFragment = true
             if (sAllowCommit) {
@@ -789,8 +804,44 @@ class MainActivity : BaseActivity(), UIControlInterface, MediaControlInterface {
         openDetailsFragment(
             artistOrFolder,
             launchedBy,
-            mMediaPlayerHolder.currentSong?.id
+            mMediaPlayerHolder.currentSong?.id,
+            null
         )
+    }
+
+    override fun onPlaylistSelected(playlistId: Long) {
+        openDetailsFragment(
+            null,
+            GoConstants.PLAYLIST_VIEW,
+            mMediaPlayerHolder.currentSong?.id,
+            playlistId
+        )
+    }
+
+    override fun onAddSongsToPlaylist(songs: List<Music>) {
+        mPendingPlaylistSongs = songs.distinctBy { song -> song.id to song.albumId }
+        if (mPendingPlaylistSongs.isEmpty()) {
+            return
+        }
+        if (mPlaylistSheet == null) {
+            mPlaylistSheet = PlaylistSheet.newInstance().apply {
+                show(supportFragmentManager, PlaylistSheet.TAG)
+                onPlaylistSelected = { playlist ->
+                    mMusicViewModel.addSongsToPlaylist(playlist.id, mPendingPlaylistSongs)
+                }
+                onCreatePlaylistRequested = {
+                    Dialogs.showPlaylistNameDialog(
+                        context = this@MainActivity,
+                        titleRes = R.string.create_playlist
+                    ) { playlistName ->
+                        mMusicViewModel.createPlaylist(playlistName, mPendingPlaylistSongs)
+                    }
+                }
+                onDismissed = {
+                    mPlaylistSheet = null
+                }
+            }
+        }
     }
 
     private fun preparePlayback(song: Music?) {
@@ -862,6 +913,7 @@ class MainActivity : BaseActivity(), UIControlInterface, MediaControlInterface {
 
     private fun updateSleepTimerIcon(isEnabled: Boolean) {
         mDetailsFragment?.tintSleepTimerIcon(enabled = isEnabled)
+        mPlaylistsFragment?.tintSleepTimerIcon(enabled = isEnabled)
         mArtistsFragment?.tintSleepTimerIcon(enabled = isEnabled)
         mAlbumsFragment?.tintSleepTimerIcon(enabled = isEnabled)
         mAllMusicFragment?.tintSleepTimerIcon(enabled = isEnabled)
@@ -1111,6 +1163,10 @@ class MainActivity : BaseActivity(), UIControlInterface, MediaControlInterface {
 
         override fun onListEnded() {
             Toast.makeText(this@MainActivity, R.string.error_list_ended, Toast.LENGTH_SHORT).show()
+        }
+
+        override fun onPlayerVolumeChanged(value: Int) {
+            mNpDialog?.updatePreciseVolume(value)
         }
     }
 

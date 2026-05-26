@@ -13,4 +13,5 @@ interface MediaPlayerInterface {
     fun onUpdateFavorites()
     fun onRepeat(toastMessage: Int)
     fun onListEnded()
+    fun onPlayerVolumeChanged(value: Int)
 }

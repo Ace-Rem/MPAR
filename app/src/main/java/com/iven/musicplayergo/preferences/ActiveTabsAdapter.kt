@@ -107,7 +107,7 @@ class ActiveTabsAdapter: RecyclerView.Adapter<ActiveTabsAdapter.CheckableItemsHo
     }
 
     private fun getTabText(tab: String) = when (tab) {
-        GoConstants.ARTISTS_TAB -> R.string.artists
+        GoConstants.ARTISTS_TAB, GoConstants.PLAYLISTS_TAB -> R.string.playlists
         GoConstants.ALBUM_TAB -> R.string.albums
         GoConstants.SONGS_TAB -> R.string.songs
         GoConstants.FOLDERS_TAB -> R.string.folders

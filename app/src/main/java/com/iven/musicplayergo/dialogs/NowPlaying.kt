@@ -145,7 +145,14 @@ class NowPlaying: BottomSheetDialogFragment() {
                 }
 
                 npCover.background.alpha = Theming.getAlbumCoverAlpha(requireContext())
-                npSaveTime.setOnClickListener { saveSongPosition() }
+                npSaveTime.setOnClickListener {
+                    Dialogs.showSleepVolumeAutomationDialog(
+                        context = requireContext(),
+                        initialValue = mMediaPlayerHolder.getSleepVolumeAutomation()
+                    ) { config ->
+                        mMediaPlayerHolder.saveSleepVolumeAutomation(config)
+                    }
+                }
                 npEqualizer.setOnClickListener { mUIControlInterface.onOpenEqualizer() }
                 npLove.setOnClickListener {
                     Lists.addToFavorites(
@@ -174,20 +181,14 @@ class NowPlaying: BottomSheetDialogFragment() {
                     setupNPCoverButtonsToasts(npSaveTime, npLove, npEqualizer, this)
                 }
 
-                with (npPauseOnEnd) {
-                    isChecked = mGoPreferences.continueOnEnd
-                    setOnCheckedChangeListener { _, isChecked ->
-                        mGoPreferences.continueOnEnd = isChecked
-                        var msg = R.string.pause_on_end
-                        if (isChecked) msg = R.string.pause_on_end_disabled
-                        Toast.makeText(requireContext(), msg, Toast.LENGTH_SHORT)
-                            .show()
+                with(npShuffle) {
+                    setOnClickListener {
+                        mMediaControlInterface.onSongsShuffled(
+                            mph.getCurrentSongs(),
+                            mph.launchedBy
+                        )
                     }
-                    setOnLongClickListener { switch ->
-                        Toast.makeText(requireContext(), switch.contentDescription, Toast.LENGTH_SHORT)
-                            .show()
-                        return@setOnLongClickListener true
-                    }
+                    setupNPCoverButtonsToasts(this)
                 }
             }
         }
@@ -411,6 +412,14 @@ class NowPlaying: BottomSheetDialogFragment() {
                 return
             }
             _npControlsBinding?.npPlay?.setImageResource(R.drawable.ic_play)
+        }
+    }
+
+    fun updatePreciseVolume(value: Int) {
+        _npExtControlsBinding?.run {
+            npVolumeSeek.progress = value
+            npVolumeValue.text = value.toString().padStart(3, '0')
+            npVolume.setImageResource(Theming.getPreciseVolumeIcon(value))
         }
     }
 

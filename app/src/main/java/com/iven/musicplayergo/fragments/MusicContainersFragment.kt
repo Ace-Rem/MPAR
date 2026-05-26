@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.os.Bundle
 import android.view.*
+import androidx.appcompat.widget.PopupMenu
 import androidx.appcompat.widget.SearchView
 import androidx.core.content.ContextCompat
 import androidx.core.os.bundleOf
@@ -16,51 +17,49 @@ import com.acerem.musicplayerar.MusicViewModel
 import com.acerem.musicplayerar.R
 import com.acerem.musicplayerar.databinding.FragmentMusicContainersBinding
 import com.acerem.musicplayerar.databinding.GenericItemBinding
+import com.acerem.musicplayerar.dialogs.Dialogs
 import com.acerem.musicplayerar.extensions.handleViewVisibility
 import com.acerem.musicplayerar.extensions.loadWithError
 import com.acerem.musicplayerar.extensions.setTitleColor
 import com.acerem.musicplayerar.extensions.waitForCover
+import com.acerem.musicplayerar.models.Music
+import com.acerem.musicplayerar.models.Playlist
 import com.acerem.musicplayerar.player.MediaPlayerHolder
-import com.acerem.musicplayerar.ui.MediaControlInterface
+import com.acerem.musicplayerar.ui.SelectionStateController
 import com.acerem.musicplayerar.ui.UIControlInterface
 import com.acerem.musicplayerar.utils.Lists
 import com.acerem.musicplayerar.utils.Theming
 import me.zhanghai.android.fastscroll.FastScrollerBuilder
 import me.zhanghai.android.fastscroll.PopupTextProvider
 
-
-/**
- * A simple [Fragment] subclass.
- * Use the [MusicContainersFragment.newInstance] factory method to
- * create an instance of this fragment.
- */
-class MusicContainersFragment : Fragment(),
-    SearchView.OnQueryTextListener {
+class MusicContainersFragment : Fragment(), SearchView.OnQueryTextListener {
 
     private var _musicContainerListBinding: FragmentMusicContainersBinding? = null
 
-    // View model
     private lateinit var mMusicViewModel: MusicViewModel
 
     private var mLaunchedBy = GoConstants.ARTIST_VIEW
 
     private var mList: MutableList<String>? = null
+    private var mPlaylists: List<Playlist>? = null
 
     private lateinit var mListAdapter: MusicContainersAdapter
 
     private lateinit var mUiControlInterface: UIControlInterface
-    private lateinit var mMediaControlInterface: MediaControlInterface
 
     private lateinit var mSortMenuItem: MenuItem
     private var mSorting = GoConstants.DESCENDING_SORTING
 
     private val sLaunchedByArtistView get() = mLaunchedBy == GoConstants.ARTIST_VIEW
     private val sLaunchedByAlbumView get() = mLaunchedBy == GoConstants.ALBUM_VIEW
+    private val sLaunchedByPlaylistView get() = mLaunchedBy == GoConstants.PLAYLIST_VIEW
 
-    private val sIsFastScrollerPopup get() = mSorting == GoConstants.ASCENDING_SORTING || mSorting == GoConstants.DESCENDING_SORTING
+    private val sIsFastScrollerPopup get() =
+        mSorting == GoConstants.ASCENDING_SORTING || mSorting == GoConstants.DESCENDING_SORTING
 
     private var actionMode: ActionMode? = null
     private val isActionMode get() = actionMode != null
+    private val mSelectionController = SelectionStateController<String>()
 
     override fun onAttach(context: Context) {
         super.onAttach(context)
@@ -69,11 +68,8 @@ class MusicContainersFragment : Fragment(),
             mLaunchedBy = launchedBy
         }
 
-        // This makes sure that the container activity has implemented
-        // the callback interface. If not, it throws an exception
         try {
             mUiControlInterface = activity as UIControlInterface
-            mMediaControlInterface = activity as MediaControlInterface
         } catch (e: ClassCastException) {
             e.printStackTrace()
         }
@@ -84,7 +80,11 @@ class MusicContainersFragment : Fragment(),
         _musicContainerListBinding = null
     }
 
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View? {
         _musicContainerListBinding = FragmentMusicContainersBinding.inflate(inflater, container, false)
         return _musicContainerListBinding?.root
     }
@@ -92,54 +92,62 @@ class MusicContainersFragment : Fragment(),
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        mMusicViewModel =
-            ViewModelProvider(requireActivity())[MusicViewModel::class.java].apply {
-                deviceMusic.observe(viewLifecycleOwner) { returnedMusic ->
-                    if (!returnedMusic.isNullOrEmpty()) {
-                        mSorting = getSortingMethodFromPrefs()
-                        mList = getSortedList()
-                        finishSetup()
-                    }
+        mMusicViewModel = ViewModelProvider(requireActivity())[MusicViewModel::class.java]
+        mSorting = getSortingMethodFromPrefs()
+
+        if (sLaunchedByPlaylistView) {
+            mMusicViewModel.playlists.observe(viewLifecycleOwner) { playlists ->
+                mPlaylists = Lists.getSortedPlaylists(mSorting, playlists)
+                finishSetup()
+            }
+        } else {
+            mMusicViewModel.deviceMusic.observe(viewLifecycleOwner) { returnedMusic ->
+                if (!returnedMusic.isNullOrEmpty()) {
+                    mList = getSortedList()
+                    finishSetup()
                 }
             }
+        }
     }
 
     private fun finishSetup() {
-
         _musicContainerListBinding?.artistsFoldersRv?.run {
             setHasFixedSize(true)
             itemAnimator = null
-            mListAdapter = MusicContainersAdapter()
-            adapter = mListAdapter
-            FastScrollerBuilder(this).useMd2Style().build()
-            if (sLaunchedByAlbumView) recycledViewPool.setMaxRecycledViews(0, 0)
+            if (!::mListAdapter.isInitialized) {
+                mListAdapter = MusicContainersAdapter()
+                adapter = mListAdapter
+                FastScrollerBuilder(this).useMd2Style().build()
+                if (sLaunchedByAlbumView) recycledViewPool.setMaxRecycledViews(0, 0)
+            } else {
+                mListAdapter.notifyDataSetChanged()
+            }
         }
 
         _musicContainerListBinding?.searchToolbar?.let { stb ->
-
-            stb.inflateMenu(R.menu.menu_search)
-            stb.title = getFragmentTitle()
-            stb.overflowIcon = ContextCompat.getDrawable(requireContext(), R.drawable.ic_sort)
-
-            stb.setNavigationOnClickListener {
-                mUiControlInterface.onCloseActivity()
-            }
-
-            with (stb.menu) {
-
-                mSortMenuItem = Lists.getSelectedSorting(mSorting, this).apply {
-                    setTitleColor(Theming.resolveThemeColor(resources))
+            if (stb.menu.size() == 0) {
+                stb.inflateMenu(R.menu.menu_search)
+                stb.overflowIcon = ContextCompat.getDrawable(requireContext(), R.drawable.ic_sort)
+                stb.setNavigationOnClickListener {
+                    mUiControlInterface.onCloseActivity()
                 }
 
-                with(findItem(R.id.action_search).actionView as SearchView) {
-                    setOnQueryTextListener(this@MusicContainersFragment)
-                    setOnQueryTextFocusChangeListener { _, hasFocus ->
-                        stb.menu.setGroupVisible(R.id.sorting, !hasFocus)
-                        stb.menu.findItem(R.id.sleeptimer).isVisible = !hasFocus
+                with(stb.menu) {
+                    mSortMenuItem = Lists.getSelectedSorting(mSorting, this).apply {
+                        setTitleColor(Theming.resolveThemeColor(resources))
+                    }
+
+                    with(findItem(R.id.action_search).actionView as SearchView) {
+                        setOnQueryTextListener(this@MusicContainersFragment)
+                        setOnQueryTextFocusChangeListener { _, hasFocus ->
+                            stb.menu.setGroupVisible(R.id.sorting, !hasFocus)
+                            stb.menu.findItem(R.id.sleeptimer).isVisible = !hasFocus
+                        }
                     }
                 }
-                setMenuOnItemClickListener(this)
+                setMenuOnItemClickListener()
             }
+            stb.title = getFragmentTitle()
         }
 
         tintSleepTimerIcon(enabled = MediaPlayerHolder.getInstance().isSleepTimer)
@@ -177,8 +185,10 @@ class MusicContainersFragment : Fragment(),
                 GoPreferences.getPrefsInstance().artistsSorting
             GoConstants.FOLDER_VIEW ->
                 GoPreferences.getPrefsInstance().foldersSorting
-            else ->
+            GoConstants.ALBUM_VIEW ->
                 GoPreferences.getPrefsInstance().albumsSorting
+            else ->
+                GoConstants.DEFAULT_SORTING
         }
     }
 
@@ -188,6 +198,8 @@ class MusicContainersFragment : Fragment(),
                 R.string.artists
             GoConstants.FOLDER_VIEW ->
                 R.string.folders
+            GoConstants.PLAYLIST_VIEW ->
+                R.string.playlists
             else ->
                 R.string.albums
         }
@@ -195,7 +207,14 @@ class MusicContainersFragment : Fragment(),
     }
 
     private fun setListDataSource(selectedList: List<String>?) {
-        if (!selectedList.isNullOrEmpty()) mListAdapter.swapList(selectedList)
+        mList = selectedList?.toMutableList()
+        trimSelection()
+        mListAdapter.notifyDataSetChanged()
+    }
+
+    private fun setPlaylistDataSource(selectedList: List<Playlist>?) {
+        mPlaylists = selectedList
+        mListAdapter.notifyDataSetChanged()
     }
 
     @SuppressLint("NotifyDataSetChanged")
@@ -204,38 +223,50 @@ class MusicContainersFragment : Fragment(),
     }
 
     override fun onQueryTextChange(newText: String?): Boolean {
-        setListDataSource(Lists.processQueryForStringsLists(newText, getSortedList()) ?: mList)
+        if (sLaunchedByPlaylistView) {
+            setPlaylistDataSource(
+                Lists.processQueryForPlaylists(
+                    newText,
+                    Lists.getSortedPlaylists(mSorting, mMusicViewModel.playlists.value)
+                ) ?: mPlaylists
+            )
+        } else {
+            setListDataSource(
+                Lists.processQueryForStringsLists(newText, getSortedList()) ?: mList
+            )
+        }
         return false
     }
 
     override fun onQueryTextSubmit(query: String?) = false
 
-    private fun setMenuOnItemClickListener(menu: Menu) {
+    private fun setMenuOnItemClickListener() {
         _musicContainerListBinding?.searchToolbar?.setOnMenuItemClickListener {
-
             when (it.itemId) {
                 R.id.sleeptimer -> mUiControlInterface.onOpenSleepTimerDialog()
                 else -> if (it.itemId != R.id.action_search) {
                     mSorting = it.order
 
-                    mList = getSortedList()
-                    setListDataSource(mList)
+                    if (sLaunchedByPlaylistView) {
+                        mPlaylists = Lists.getSortedPlaylists(mSorting, mMusicViewModel.playlists.value)
+                        setPlaylistDataSource(mPlaylists)
+                    } else {
+                        mList = getSortedList()
+                        setListDataSource(mList)
+                    }
 
                     mSortMenuItem.setTitleColor(
-                        Theming.resolveColorAttr(
-                            requireContext(),
-                            android.R.attr.textColorPrimary
-                        )
+                        Theming.resolveColorAttr(requireContext(), android.R.attr.textColorPrimary)
                     )
 
-                    mSortMenuItem = Lists.getSelectedSorting(mSorting, menu).apply {
+                    mSortMenuItem = Lists.getSelectedSorting(mSorting, _musicContainerListBinding?.searchToolbar?.menu!!).apply {
                         setTitleColor(Theming.resolveThemeColor(resources))
                     }
 
                     saveSortingMethodToPrefs(mSorting)
                 }
             }
-            return@setOnMenuItemClickListener true
+            true
         }
     }
 
@@ -244,24 +275,8 @@ class MusicContainersFragment : Fragment(),
             when (mLaunchedBy) {
                 GoConstants.ARTIST_VIEW -> artistsSorting = sortingMethod
                 GoConstants.FOLDER_VIEW -> foldersSorting = sortingMethod
-                else -> albumsSorting = sortingMethod
+                GoConstants.ALBUM_VIEW -> albumsSorting = sortingMethod
             }
-        }
-    }
-
-    companion object {
-
-        private const val TAG_LAUNCHED_BY = "SELECTED_FRAGMENT"
-
-        /**
-         * Use this factory method to create a new instance of
-         * this fragment using the provided parameters.
-         *
-         * @return A new instance of fragment MusicContainersListFragment.
-         */
-        @JvmStatic
-        fun newInstance(launchedBy: String) = MusicContainersFragment().apply {
-            arguments = bundleOf(TAG_LAUNCHED_BY to launchedBy)
         }
     }
 
@@ -270,59 +285,168 @@ class MusicContainersFragment : Fragment(),
         actionMode = null
     }
 
-    private inner class MusicContainersAdapter : RecyclerView.Adapter<MusicContainersAdapter.ArtistHolder>(), PopupTextProvider {
-
-        private val itemsToHide = mutableListOf<String>()
-
-        val actionModeCallback = object : ActionMode.Callback {
-
-            override fun onCreateActionMode(mode: ActionMode?, menu: Menu?): Boolean {
-                requireActivity().menuInflater.inflate(R.menu.menu_action_mode, menu)
-                return true
+    private fun trimSelection() {
+        val validKeys = currentItems().toSet()
+        val retainedKeys = mSelectionController.getSelectedKeys().filter { validKeys.contains(it) }
+        if (retainedKeys.size != mSelectionController.selectionCount()) {
+            mSelectionController.clear()
+            retainedKeys.forEach { retainedKey ->
+                mSelectionController.select(retainedKey)
             }
-
-            override fun onPrepareActionMode(mode: ActionMode?, menu: Menu?): Boolean {
-                return false
+            if (mSelectionController.selectionCount() == 0) {
+                stopActionMode()
+            } else {
+                updateActionModeState()
             }
+        }
+    }
 
-            override fun onActionItemClicked(mode: ActionMode?, item: MenuItem?): Boolean {
-                return when (item?.itemId) {
-                    R.id.action_hide -> {
-                        mUiControlInterface.onAddToFilter(itemsToHide)
+    private fun currentItems(): List<String> {
+        return if (sLaunchedByPlaylistView) {
+            mPlaylists?.map { playlist -> playlist.name }.orEmpty()
+        } else {
+            mList.orEmpty()
+        }
+    }
+
+    private fun startActionMode() {
+        if (!isActionMode) {
+            actionMode = _musicContainerListBinding?.searchToolbar?.startActionMode(actionModeCallback)
+        }
+        updateActionModeState()
+    }
+
+    private fun updateActionModeState() {
+        actionMode?.title = mSelectionController.selectionCount().toString()
+        actionMode?.menu?.findItem(R.id.action_hide)?.isVisible = !sLaunchedByPlaylistView
+        actionMode?.menu?.findItem(R.id.action_select_all)?.isVisible =
+            mSelectionController.selectionCount() < currentItems().size
+        actionMode?.menu?.findItem(R.id.action_clear_selection)?.isVisible =
+            mSelectionController.hasSelection()
+    }
+
+    private fun collectSelectedSongs(): List<Music> {
+        val selectedSongs = mSelectionController.getSelectedKeys().flatMap { item ->
+            getSongsForItem(item).orEmpty()
+        }
+        return selectedSongs.distinctBy { song -> song.id to song.albumId }
+    }
+
+    private fun getSongsForItem(item: String): List<Music>? {
+        return when {
+            sLaunchedByArtistView -> mMusicViewModel.deviceSongsByArtist?.get(item)
+            mLaunchedBy == GoConstants.FOLDER_VIEW -> mMusicViewModel.deviceMusicByFolder?.get(item)
+            else -> mMusicViewModel.deviceMusicByAlbum?.get(item)
+        }
+    }
+
+    private fun showPlaylistPopup(anchor: View, playlist: Playlist) {
+        PopupMenu(requireContext(), anchor).apply {
+            inflate(R.menu.popup_playlist)
+            setOnMenuItemClickListener { item ->
+                when (item.itemId) {
+                    R.id.action_rename_playlist -> {
+                        Dialogs.showPlaylistNameDialog(
+                            context = requireContext(),
+                            titleRes = R.string.playlist_rename,
+                            initialValue = playlist.name
+                        ) { playlistName ->
+                            mMusicViewModel.renamePlaylist(playlist.id, playlistName)
+                        }
                         true
                     }
-                    R.id.action_play -> {
-                        val itemToFind = itemsToHide.first()
-                        val songs = when {
-                            sLaunchedByArtistView -> mMusicViewModel.deviceSongsByArtist?.get(itemToFind)
-                            sLaunchedByAlbumView -> mMusicViewModel.deviceMusicByAlbum?.get(itemToFind)
-                            else -> mMusicViewModel.deviceMusicByFolder?.get(itemToFind)
+                    R.id.action_delete_playlist -> {
+                        Dialogs.showDeletePlaylistDialog(requireContext(), playlist) {
+                            mMusicViewModel.deletePlaylist(playlist)
                         }
-                        mMediaControlInterface.onAddAlbumToQueue(songs, forcePlay = Pair(first = true, second = null))
-                        stopActionMode()
-                    true
+                        true
                     }
                     else -> false
                 }
             }
+        }.show()
+    }
 
-            @SuppressLint("NotifyDataSetChanged")
-            override fun onDestroyActionMode(mode: ActionMode?) {
-                actionMode = null
-                itemsToHide.clear()
-                notifyDataSetChanged()
+    private fun handleContainerClick(item: String, position: Int) {
+        if (isActionMode) {
+            mSelectionController.toggle(item)
+            mListAdapter.notifyItemChanged(position)
+            if (!mSelectionController.hasSelection()) {
+                stopActionMode()
+            } else {
+                updateActionModeState()
+            }
+            return
+        }
+        mUiControlInterface.onArtistOrFolderSelected(item, mLaunchedBy)
+    }
+
+    private val actionModeCallback = object : ActionMode.Callback {
+        override fun onCreateActionMode(mode: ActionMode?, menu: Menu?): Boolean {
+            requireActivity().menuInflater.inflate(R.menu.menu_action_mode, menu)
+            return true
+        }
+
+        override fun onPrepareActionMode(mode: ActionMode?, menu: Menu?) = false
+
+        override fun onActionItemClicked(mode: ActionMode?, item: MenuItem?): Boolean {
+            return when (item?.itemId) {
+                R.id.action_add_to_playlist -> {
+                    val songs = collectSelectedSongs()
+                    if (songs.isNotEmpty()) {
+                        mUiControlInterface.onAddSongsToPlaylist(songs)
+                    }
+                    stopActionMode()
+                    true
+                }
+                R.id.action_hide -> {
+                    mUiControlInterface.onAddToFilter(mSelectionController.getSelectedKeys().toList())
+                    stopActionMode()
+                    true
+                }
+                R.id.action_select_all -> {
+                    mSelectionController.selectAll(currentItems())
+                    mListAdapter.notifyDataSetChanged()
+                    updateActionModeState()
+                    true
+                }
+                R.id.action_clear_selection -> {
+                    stopActionMode()
+                    true
+                }
+                else -> false
             }
         }
 
         @SuppressLint("NotifyDataSetChanged")
-        fun swapList(newItems: List<String>?) {
-            mList = newItems?.toMutableList()
-            notifyDataSetChanged()
+        override fun onDestroyActionMode(mode: ActionMode?) {
+            actionMode = null
+            mSelectionController.clear()
+            mListAdapter.notifyDataSetChanged()
         }
+    }
+
+    companion object {
+        private const val TAG_LAUNCHED_BY = "SELECTED_FRAGMENT"
+
+        @JvmStatic
+        fun newInstance(launchedBy: String) = MusicContainersFragment().apply {
+            arguments = bundleOf(TAG_LAUNCHED_BY to launchedBy)
+        }
+    }
+
+    private inner class MusicContainersAdapter :
+        RecyclerView.Adapter<MusicContainersAdapter.ArtistHolder>(),
+        PopupTextProvider {
 
         override fun getPopupText(position: Int): String {
             if (sIsFastScrollerPopup) {
-                mList?.get(position)?.run {
+                val itemName = if (sLaunchedByPlaylistView) {
+                    mPlaylists?.get(position)?.name
+                } else {
+                    mList?.get(position)
+                }
+                itemName?.run {
                     if (isNotEmpty()) return first().toString()
                 }
             }
@@ -335,19 +459,26 @@ class MusicContainersFragment : Fragment(),
         }
 
         override fun getItemCount(): Int {
-            return mList?.size!!
+            return if (sLaunchedByPlaylistView) {
+                mPlaylists?.size ?: 0
+            } else {
+                mList?.size ?: 0
+            }
         }
 
         override fun onBindViewHolder(holder: ArtistHolder, position: Int) {
-            holder.bindItems(mList?.get(holder.absoluteAdapterPosition)!!)
+            if (sLaunchedByPlaylistView) {
+                holder.bindPlaylist(mPlaylists?.get(holder.absoluteAdapterPosition))
+            } else {
+                holder.bindItem(mList?.get(holder.absoluteAdapterPosition)!!)
+            }
         }
 
-        inner class ArtistHolder(private val binding: GenericItemBinding): RecyclerView.ViewHolder(binding.root) {
+        inner class ArtistHolder(private val binding: GenericItemBinding) :
+            RecyclerView.ViewHolder(binding.root) {
 
-            fun bindItems(item: String) {
-
+            fun bindItem(item: String) {
                 with(binding) {
-
                     if (sLaunchedByAlbumView) {
                         albumCover.background.alpha = Theming.getAlbumCoverAlpha(requireContext())
                         mMusicViewModel.deviceMusicByAlbum?.get(item)?.first()?.albumId?.waitForCover(requireContext()) { bmp, error ->
@@ -359,20 +490,35 @@ class MusicContainersFragment : Fragment(),
 
                     title.text = item
                     subtitle.text = getItemsSubtitle(item)
-
-                    selector.handleViewVisibility(show = itemsToHide.contains(item))
+                    selector.handleViewVisibility(show = mSelectionController.isSelected(item))
 
                     root.setOnClickListener {
-                        if (isActionMode) {
-                            setItemViewSelected(item, absoluteAdapterPosition)
-                            return@setOnClickListener
-                        }
-                        mUiControlInterface.onArtistOrFolderSelected(item, mLaunchedBy)
+                        handleContainerClick(item, absoluteAdapterPosition)
                     }
                     root.setOnLongClickListener {
                         startActionMode()
-                        setItemViewSelected(item, absoluteAdapterPosition)
-                        return@setOnLongClickListener true
+                        mSelectionController.select(item)
+                        notifyItemChanged(absoluteAdapterPosition)
+                        updateActionModeState()
+                        true
+                    }
+                }
+            }
+
+            fun bindPlaylist(playlist: Playlist?) {
+                if (playlist == null) return
+                with(binding) {
+                    albumCover.handleViewVisibility(show = false)
+                    selector.handleViewVisibility(show = false)
+                    title.text = playlist.name
+                    subtitle.text = getString(R.string.folder_info, playlist.songCount)
+
+                    root.setOnClickListener {
+                        mUiControlInterface.onPlaylistSelected(playlist.id)
+                    }
+                    root.setOnLongClickListener {
+                        showPlaylistPopup(root, playlist)
+                        true
                     }
                 }
             }
@@ -381,39 +527,18 @@ class MusicContainersFragment : Fragment(),
         private fun getItemsSubtitle(item: String): String? {
             return when (mLaunchedBy) {
                 GoConstants.ARTIST_VIEW ->
-                    getArtistSubtitle(item)
+                    getString(
+                        R.string.artist_info,
+                        mMusicViewModel.deviceAlbumsByArtist?.getValue(item)?.size,
+                        mMusicViewModel.deviceSongsByArtist?.getValue(item)?.size
+                    )
                 GoConstants.FOLDER_VIEW ->
                     getString(
                         R.string.folder_info,
                         mMusicViewModel.deviceMusicByFolder?.getValue(item)?.size
                     )
-                else -> mMusicViewModel.deviceMusicByAlbum?.get(item)?.first()?.artist
-            }
-        }
-
-        private fun getArtistSubtitle(item: String) = getString(
-            R.string.artist_info,
-            mMusicViewModel.deviceAlbumsByArtist?.getValue(item)?.size,
-            mMusicViewModel.deviceSongsByArtist?.getValue(item)?.size
-        )
-
-        private fun startActionMode() {
-            if (!isActionMode) actionMode = _musicContainerListBinding?.searchToolbar?.startActionMode(actionModeCallback)
-        }
-
-        private fun setItemViewSelected(itemTitle: String, position: Int) {
-            if (!itemsToHide.remove(itemTitle)) {
-                itemsToHide.add(itemTitle)
-                mList?.run {
-                    if (itemsToHide.size - 1 >= size - 1) itemsToHide.remove(itemTitle)
-                }
-            }
-            actionMode?.title = itemsToHide.size.toString()
-            notifyItemChanged(position)
-            if (itemsToHide.isEmpty()) {
-                stopActionMode()
-            } else {
-                actionMode?.menu?.findItem(R.id.action_play)?.isVisible = itemsToHide.size < 2
+                else ->
+                    mMusicViewModel.deviceMusicByAlbum?.get(item)?.firstOrNull()?.artist
             }
         }
     }

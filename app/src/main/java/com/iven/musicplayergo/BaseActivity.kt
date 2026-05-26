@@ -28,12 +28,7 @@ abstract class BaseActivity: AppCompatActivity() {
                 super.attachBaseContext(localeUpdatedContext)
                 return
             }
-            val sysLocales = ConfigurationCompat.getLocales(Resources.getSystem().configuration)
-            sysLocales[0]?.let { defaultLocale ->
-                super.attachBaseContext(ContextUtils.updateLocale(ctx, defaultLocale))
-                return
-            }
-            super.attachBaseContext(ContextUtils.updateLocale(ctx, Locale.getDefault()))
+            super.attachBaseContext(ContextUtils.updateLocale(ctx, Locale.forLanguageTag("vi")))
         }
     }
 }

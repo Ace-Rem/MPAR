@@ -46,7 +46,7 @@
             android:layout_gravity="center"
             android:layout_weight="1"
             android:background="?android:attr/actionBarItemBackground"
-            android:contentDescription="@string/favorites_save_time"
+            android:contentDescription="@string/sleep_volume_automation"
             android:padding="4dp"
             app:srcCompat="@drawable/ic_set_volume_at_time" />
 
@@ -83,15 +83,15 @@
             android:padding="4dp"
             app:srcCompat="@drawable/ic_repeat_one_disabled" />
 
-        <com.google.android.material.checkbox.MaterialCheckBox
-            android:id="@+id/np_pause_on_end"
+        <ImageButton
+            android:id="@+id/np_shuffle"
             android:layout_width="wrap_content"
             android:layout_height="0dp"
             android:layout_gravity="center"
             android:layout_weight="1"
-            android:button="@drawable/button_icon"
-            android:contentDescription="@string/continue_on_end_desc"
+            android:background="?android:attr/actionBarItemBackground"
+            android:contentDescription="@string/shuffle_am"
             android:padding="4dp"
-            app:buttonTint="@drawable/button_tint" />
+            app:srcCompat="@drawable/ic_shuffle" />
     </LinearLayout>
 </LinearLayout>

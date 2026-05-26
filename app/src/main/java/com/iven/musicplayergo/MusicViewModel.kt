@@ -5,8 +5,11 @@ import android.content.res.Resources
 import android.provider.MediaStore
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.MutableLiveData
+import com.acerem.musicplayerar.data.MusicDatabase
+import com.acerem.musicplayerar.data.playlists.PlaylistRepository
 import com.acerem.musicplayerar.models.Album
 import com.acerem.musicplayerar.models.Music
+import com.acerem.musicplayerar.models.Playlist
 import com.acerem.musicplayerar.utils.MusicUtils
 import com.acerem.musicplayerar.utils.Versioning
 import kotlinx.coroutines.*
@@ -30,10 +33,15 @@ class MusicViewModel(application: Application): AndroidViewModel(application) {
     private val mUiDispatcher = Dispatchers.Main
     private val mIoDispatcher = Dispatchers.IO + mViewModelJob + mHandler
     private val mUiScope = CoroutineScope(mUiDispatcher)
+    private val mPlaylistRepository = PlaylistRepository(
+        MusicDatabase.getInstance(application).playlistDao()
+    )
 
     val deviceMusic = MutableLiveData<MutableList<Music>?>()
+    val playlists = MutableLiveData<List<Playlist>>(emptyList())
 
     private var mDeviceMusicList = mutableListOf<Music>()
+    private var mPlaylistsJob: Job? = null
 
     fun getSongFromIntent(queriedDisplayName: String) =
         mDeviceMusicList.firstOrNull { s -> s.displayName == queriedDisplayName }
@@ -64,6 +72,7 @@ class MusicViewModel(application: Application): AndroidViewModel(application) {
      */
     override fun onCleared() {
         super.onCleared()
+        mPlaylistsJob?.cancel()
         mViewModelJob.cancel()
     }
 
@@ -235,7 +244,53 @@ class MusicViewModel(application: Application): AndroidViewModel(application) {
                 }
             }
         }
+        observePlaylists()
         updatePreferences()
+    }
+
+    private fun observePlaylists() {
+        val deviceSongs = deviceMusicFiltered?.toList().orEmpty()
+        mPlaylistsJob?.cancel()
+        mPlaylistsJob = mUiScope.launch {
+            mPlaylistRepository.observePlaylists(deviceSongs).collect { playlists ->
+                this@MusicViewModel.playlists.value = playlists
+            }
+        }
+    }
+
+    fun getPlaylist(playlistId: Long): Playlist? =
+        playlists.value?.firstOrNull { playlist -> playlist.id == playlistId }
+
+    fun createPlaylist(name: String, songs: List<Music> = emptyList()) {
+        mUiScope.launch {
+            withContext(mIoDispatcher) {
+                mPlaylistRepository.createPlaylist(name, songs)
+            }
+        }
+    }
+
+    fun renamePlaylist(playlistId: Long, newName: String) {
+        mUiScope.launch {
+            withContext(mIoDispatcher) {
+                mPlaylistRepository.renamePlaylist(playlistId, newName)
+            }
+        }
+    }
+
+    fun deletePlaylist(playlist: Playlist) {
+        mUiScope.launch {
+            withContext(mIoDispatcher) {
+                mPlaylistRepository.deletePlaylist(playlist)
+            }
+        }
+    }
+
+    fun addSongsToPlaylist(playlistId: Long, songs: List<Music>) {
+        mUiScope.launch {
+            withContext(mIoDispatcher) {
+                mPlaylistRepository.addSongsToPlaylist(playlistId, songs)
+            }
+        }
     }
 
     private fun updatePreferences() {

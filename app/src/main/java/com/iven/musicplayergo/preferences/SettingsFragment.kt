@@ -1,18 +1,10 @@
 package com.acerem.musicplayerar.preferences
-
-
 import android.annotation.SuppressLint
 import android.content.Context
-import android.content.Intent
-import android.content.pm.PackageManager
-import android.content.pm.ResolveInfo
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Toast
-import androidx.browser.customtabs.CustomTabsIntent
-import androidx.core.net.toUri
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.commit
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -20,7 +12,6 @@ import com.acerem.musicplayerar.GoPreferences
 import com.acerem.musicplayerar.R
 import com.acerem.musicplayerar.databinding.FragmentSettingsBinding
 import com.acerem.musicplayerar.ui.UIControlInterface
-import com.acerem.musicplayerar.utils.Versioning
 
 
 /**
@@ -66,10 +57,7 @@ class SettingsFragment : Fragment() {
                 mUIControlInterface.onCloseActivity()
             }
             setOnMenuItemClickListener {
-                when (it.itemId) {
-                    R.id.github_page -> openGitHubPage()
-                    R.id.locale_switcher -> openLocaleSwitcher()
-                }
+                if (it.itemId == R.id.locale_switcher) openLocaleSwitcher()
                 return@setOnMenuItemClickListener true
             }
         }
@@ -103,45 +91,6 @@ class SettingsFragment : Fragment() {
             }
         }
         dialog.show()
-    }
-
-    private fun openGitHubPage() {
-       val customTabsIntent = CustomTabsIntent.Builder()
-           .setShareState(CustomTabsIntent.SHARE_STATE_ON)
-           .setShowTitle(true)
-           .build()
-
-        val parsedUri = getString(R.string.app_git).toUri()
-
-        val info = solveInfo(customTabsIntent.intent)
-
-        if (info.size > 0) {
-            customTabsIntent.launchUrl(requireContext(), parsedUri)
-            return
-        }
-
-        //from: https://github.com/immuni-app/immuni-app-android/blob/development/extensions/src/main/java/it/ministerodellasalute/immuni/extensions/utils/ExternalLinksHelper.kt
-        val browserIntent = Intent(Intent.ACTION_VIEW, parsedUri)
-        browserIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
-
-        val fallbackInfo = solveInfo(browserIntent)
-        if (fallbackInfo.size > 0) {
-            requireContext().startActivity(browserIntent)
-            return
-        }
-        Toast.makeText(requireContext(), R.string.error_no_browser, Toast.LENGTH_SHORT).show()
-    }
-
-    @Suppress("DEPRECATION")
-    private fun solveInfo(intent: Intent): MutableList<ResolveInfo> {
-        val manager = requireContext().packageManager
-        return if (Versioning.isTiramisu()) {
-            manager.queryIntentActivities(intent, PackageManager.ResolveInfoFlags.of(
-                PackageManager.MATCH_DEFAULT_ONLY.toLong()
-            ))
-        } else {
-            manager.queryIntentActivities(intent, PackageManager.MATCH_DEFAULT_ONLY)
-        }
     }
 
     companion object {

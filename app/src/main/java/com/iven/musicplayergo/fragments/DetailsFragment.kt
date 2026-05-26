@@ -5,13 +5,17 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.os.Bundle
 import android.text.TextUtils
+import android.util.TypedValue
 import android.view.LayoutInflater
+import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import android.widget.LinearLayout
+import android.view.ActionMode
 import androidx.appcompat.widget.SearchView
 import androidx.core.content.ContextCompat
+import androidx.core.graphics.ColorUtils
 import androidx.core.os.bundleOf
 import androidx.core.text.parseAsHtml
 import androidx.core.view.doOnLayout
@@ -32,12 +36,13 @@ import com.acerem.musicplayerar.dialogs.Dialogs
 import com.acerem.musicplayerar.extensions.*
 import com.acerem.musicplayerar.models.Album
 import com.acerem.musicplayerar.models.Music
+import com.acerem.musicplayerar.models.Playlist
 import com.acerem.musicplayerar.player.MediaPlayerHolder
 import com.acerem.musicplayerar.ui.ItemSwipeCallback
 import com.acerem.musicplayerar.ui.MediaControlInterface
+import com.acerem.musicplayerar.ui.SelectionStateController
 import com.acerem.musicplayerar.ui.UIControlInterface
 import com.acerem.musicplayerar.utils.Lists
-import com.acerem.musicplayerar.utils.Popups
 import com.acerem.musicplayerar.utils.Theming
 import me.zhanghai.android.fastscroll.FastScrollerBuilder
 
@@ -60,18 +65,24 @@ class DetailsFragment : Fragment(), SearchView.OnQueryTextListener {
     private val sLaunchedByArtistView get() = mLaunchedBy == GoConstants.ARTIST_VIEW
     private val sLaunchedByFolderView get() = mLaunchedBy == GoConstants.FOLDER_VIEW
     private val sLaunchedByAlbumView get() = mLaunchedBy == GoConstants.ALBUM_VIEW
+    private val sLaunchedByPlaylistView get() = mLaunchedBy == GoConstants.PLAYLIST_VIEW
 
     private lateinit var mArtistDetailsAnimator: Animator
     private lateinit var mAlbumsRecyclerViewLayoutManager: LinearLayoutManager
 
     private var mSelectedArtistOrFolder: String? = null
+    private var mSelectedPlaylistId: Long? = null
     private var mSelectedArtistAlbums: List<Album>? = null
     private var mSongsList: List<Music>? = null
+    private var mSelectedPlaylist: Playlist? = null
 
     private var mSelectedAlbum: Album? = null
     private var mSelectedAlbumPosition = RecyclerView.NO_POSITION
     private var mSelectedSongId: Long? = null
     private var mSelectedSongPosition = RecyclerView.NO_POSITION
+    private var actionMode: ActionMode? = null
+    private val isActionMode get() = actionMode != null
+    private val mSelectionController = SelectionStateController<Long>()
 
     private lateinit var mSortMenuItem: MenuItem
     private var mSongsSorting = Lists.getDefSortingMode()
@@ -104,6 +115,9 @@ class DetailsFragment : Fragment(), SearchView.OnQueryTextListener {
             if (sLaunchedByArtistView) mSelectedAlbumPosition = getInt(TAG_SELECTED_ALBUM_POSITION)
             mSelectedSongId = getLong(TAG_SELECTED_SONG_ID)
             sCanUpdateSongs = getBoolean(TAG_CAN_UPDATE_SONGS)
+            if (containsKey(TAG_PLAYLIST_ID)) {
+                mSelectedPlaylistId = getLong(TAG_PLAYLIST_ID)
+            }
         }
 
         // This makes sure that the container activity has implemented
@@ -133,10 +147,18 @@ class DetailsFragment : Fragment(), SearchView.OnQueryTextListener {
             }
             GoConstants.FOLDER_VIEW ->
                 mMusicViewModel.deviceMusicByFolder?.get(mSelectedArtistOrFolder)
+            GoConstants.PLAYLIST_VIEW -> {
+                mSelectedPlaylist = mSelectedPlaylistId?.let { playlistId ->
+                    mMusicViewModel.getPlaylist(playlistId)
+                }
+                mSelectedPlaylistOrNull()?.songs
+            }
             else ->
                 mMusicViewModel.deviceMusicByAlbum?.get(mSelectedArtistOrFolder)
         }
     }
+
+    private fun mSelectedPlaylistOrNull() = mSelectedPlaylist
 
     override fun onDestroyView() {
         super.onDestroyView()
@@ -197,8 +219,12 @@ class DetailsFragment : Fragment(), SearchView.OnQueryTextListener {
                 if (sLaunchedByArtistView) R.drawable.ic_shuffle else R.drawable.ic_more_vert
             )
 
-            if (sLaunchedByArtistView || sLaunchedByFolderView) {
-                title = mSelectedArtistOrFolder
+            if (sLaunchedByArtistView || sLaunchedByFolderView || sLaunchedByPlaylistView) {
+                title = if (sLaunchedByPlaylistView) {
+                    mSelectedPlaylist?.name
+                } else {
+                    mSelectedArtistOrFolder
+                }
                 // Make toolbar's title scrollable
                 getTitleTextView()?.run {
                     isSelected = true
@@ -220,7 +246,7 @@ class DetailsFragment : Fragment(), SearchView.OnQueryTextListener {
 
     private fun setupToolbarSpecs() {
         _detailsFragmentBinding?.detailsToolbar?.run {
-            if (sLaunchedByFolderView) {
+            if (sLaunchedByFolderView || sLaunchedByPlaylistView) {
                 elevation = resources.getDimensionPixelSize(R.dimen.search_bar_elevation).toFloat()
                 setBackgroundColor(Theming.resolveColorAttr(requireContext(), R.attr.toolbar_bg))
             }
@@ -269,7 +295,7 @@ class DetailsFragment : Fragment(), SearchView.OnQueryTextListener {
                 albumsRv.handleViewVisibility(show = false)
                 selectedAlbumContainer.handleViewVisibility(show = false)
 
-                if (sLaunchedByFolderView) {
+                if (sLaunchedByFolderView || sLaunchedByPlaylistView) {
                     albumViewCoverContainer.handleViewVisibility(show = false)
                     detailsToolbar.subtitle = getString(
                         R.string.folder_info,
@@ -375,6 +401,8 @@ class DetailsFragment : Fragment(), SearchView.OnQueryTextListener {
 
         val songs = if (sLaunchedByFolderView) {
             Lists.getSortedMusicListForFolder(mSongsSorting, musicList?.toMutableList())
+        } else if (sLaunchedByPlaylistView) {
+            Lists.getSortedMusicListForAllMusic(mSongsSorting, musicList?.toMutableList())
         } else {
             Lists.getSortedMusicList(mSongsSorting, musicList?.toMutableList())
         }
@@ -410,6 +438,80 @@ class DetailsFragment : Fragment(), SearchView.OnQueryTextListener {
         Theming.getSortIconForSongs(mSongsSorting)
     }
 
+    private fun startActionMode() {
+        if (!isActionMode) {
+            actionMode = _detailsFragmentBinding?.detailsToolbar?.startActionMode(actionModeCallback)
+        }
+        updateActionModeState()
+    }
+
+    private fun stopActionMode() {
+        actionMode?.finish()
+        actionMode = null
+    }
+
+    private fun updateActionModeState() {
+        actionMode?.title = mSelectionController.selectionCount().toString()
+        actionMode?.menu?.findItem(R.id.action_hide)?.isVisible = false
+        actionMode?.menu?.findItem(R.id.action_select_all)?.isVisible =
+            mSelectionController.selectionCount() < (mSongsList?.size ?: 0)
+        actionMode?.menu?.findItem(R.id.action_clear_selection)?.isVisible =
+            mSelectionController.hasSelection()
+    }
+
+    private fun updateSongSelectionBackground(view: View, selected: Boolean) {
+        if (selected) {
+            view.setBackgroundColor(
+                ColorUtils.setAlphaComponent(Theming.resolveThemeColor(resources), 72)
+            )
+            return
+        }
+        val typedValue = TypedValue()
+        requireContext().theme.resolveAttribute(android.R.attr.selectableItemBackground, typedValue, true)
+        view.setBackgroundResource(typedValue.resourceId)
+    }
+
+    private val actionModeCallback = object : ActionMode.Callback {
+        override fun onCreateActionMode(mode: ActionMode?, menu: Menu?): Boolean {
+            requireActivity().menuInflater.inflate(R.menu.menu_action_mode, menu)
+            return true
+        }
+
+        override fun onPrepareActionMode(mode: ActionMode?, menu: Menu?) = false
+
+        override fun onActionItemClicked(mode: ActionMode?, item: MenuItem?): Boolean {
+            return when (item?.itemId) {
+                R.id.action_add_to_playlist -> {
+                    val selectedSongs = mSongsList.orEmpty().filter { song ->
+                        song.id != null && mSelectionController.isSelected(song.id)
+                    }
+                    if (selectedSongs.isNotEmpty()) {
+                        mUIControlInterface.onAddSongsToPlaylist(selectedSongs)
+                    }
+                    stopActionMode()
+                    true
+                }
+                R.id.action_select_all -> {
+                    mSelectionController.selectAll(mSongsList.orEmpty().mapNotNull { song -> song.id })
+                    _detailsFragmentBinding?.songsRv?.adapter?.notifyDataSetChanged()
+                    updateActionModeState()
+                    true
+                }
+                R.id.action_clear_selection -> {
+                    stopActionMode()
+                    true
+                }
+                else -> false
+            }
+        }
+
+        override fun onDestroyActionMode(mode: ActionMode?) {
+            actionMode = null
+            mSelectionController.clear()
+            _detailsFragmentBinding?.songsRv?.adapter?.notifyDataSetChanged()
+        }
+    }
+
     override fun onQueryTextChange(newText: String?): Boolean {
         setSongsDataSource(
             Lists.processQueryForMusic(newText, getSongSource()) ?: mSongsList,
@@ -427,7 +529,7 @@ class DetailsFragment : Fragment(), SearchView.OnQueryTextListener {
 
             val menuToInflate = when {
                 sLaunchedByArtistView -> R.menu.menu_artist_details
-                sLaunchedByFolderView -> R.menu.menu_folder_details
+                sLaunchedByFolderView || sLaunchedByPlaylistView -> R.menu.menu_folder_details
                 else -> R.menu.menu_album_details
             }
 
@@ -439,7 +541,7 @@ class DetailsFragment : Fragment(), SearchView.OnQueryTextListener {
                         findItem(R.id.action_shuffle_am).isEnabled = mSelectedArtistAlbums?.size!! >= 2
                         findItem(R.id.action_shuffle_sa).isEnabled = mSelectedAlbum?.music?.size!! >= 2
                     }
-                    sLaunchedByFolderView -> {
+                    sLaunchedByFolderView || sLaunchedByPlaylistView -> {
                         findItem(R.id.action_shuffle_am).isEnabled = mSongsList?.size!! >= 2
                         findItem(R.id.action_shuffle_sa).isEnabled = false
                         findItem(R.id.sorting).isEnabled =
@@ -525,6 +627,8 @@ class DetailsFragment : Fragment(), SearchView.OnQueryTextListener {
 
         val selectedList = if (sLaunchedByFolderView) {
             mMusicViewModel.deviceMusicByFolder?.get(mSelectedArtistOrFolder)
+        } else if (sLaunchedByPlaylistView) {
+            mSelectedPlaylistOrNull()?.songs
         } else {
             mMusicViewModel.deviceMusicByAlbum?.get(mSelectedArtistOrFolder)
         }
@@ -716,6 +820,7 @@ class DetailsFragment : Fragment(), SearchView.OnQueryTextListener {
                         }
 
                     title.text = displayedTitle
+                    selector.handleViewVisibility(show = false)
 
                     val titleColor = if (mSelectedSongId == itemSong?.id) {
                         mSelectedSongPosition = absoluteAdapterPosition
@@ -738,6 +843,18 @@ class DetailsFragment : Fragment(), SearchView.OnQueryTextListener {
                     }
 
                     root.setOnClickListener {
+                        itemSong?.id?.let { songId ->
+                            if (isActionMode) {
+                                mSelectionController.toggle(songId)
+                                notifyItemChanged(absoluteAdapterPosition)
+                                if (!mSelectionController.hasSelection()) {
+                                    stopActionMode()
+                                } else {
+                                    updateActionModeState()
+                                }
+                                return@setOnClickListener
+                            }
+                        }
 
                         with(mMediaPlayerHolder) {
                             if (isCurrentSongFM) currentSongFM = null
@@ -758,14 +875,20 @@ class DetailsFragment : Fragment(), SearchView.OnQueryTextListener {
                     }
 
                     root.setOnLongClickListener {
-                        Popups.showPopupForSongs(
-                            requireActivity(),
-                            _detailsFragmentBinding?.songsRv?.findViewHolderForAdapterPosition(absoluteAdapterPosition)?.itemView,
-                            itemSong,
-                            mLaunchedBy
-                        )
-                        return@setOnLongClickListener true
+                        itemSong?.id?.let { songId ->
+                            startActionMode()
+                            mSelectionController.select(songId)
+                            notifyItemChanged(absoluteAdapterPosition)
+                            updateActionModeState()
+                            return@setOnLongClickListener true
+                        }
+                        false
                     }
+
+                    updateSongSelectionBackground(
+                        root,
+                        itemSong?.id != null && mSelectionController.isSelected(itemSong.id)
+                    )
                 }
             }
         }
@@ -778,6 +901,7 @@ class DetailsFragment : Fragment(), SearchView.OnQueryTextListener {
         private const val TAG_SELECTED_ALBUM_POSITION = "SELECTED_ALBUM_POSITION"
         private const val TAG_SELECTED_SONG_ID = "HIGHLIGHTED_SONG_ID"
         private const val TAG_CAN_UPDATE_SONGS = "CAN_UPDATE_SONGS"
+        private const val TAG_PLAYLIST_ID = "PLAYLIST_ID"
 
         /**
          * Use this factory method to create a new instance of
@@ -791,7 +915,8 @@ class DetailsFragment : Fragment(), SearchView.OnQueryTextListener {
             launchedBy: String,
             playedAlbumPosition: Int,
             selectedSongId: Long?,
-            canUpdateSongs: Boolean
+            canUpdateSongs: Boolean,
+            playlistId: Long? = null
         ) =
             DetailsFragment().apply {
                 arguments = bundleOf(
@@ -799,7 +924,8 @@ class DetailsFragment : Fragment(), SearchView.OnQueryTextListener {
                     TAG_IS_FOLDER to launchedBy,
                     TAG_SELECTED_ALBUM_POSITION to playedAlbumPosition,
                     TAG_SELECTED_SONG_ID to selectedSongId,
-                    TAG_CAN_UPDATE_SONGS to canUpdateSongs
+                    TAG_CAN_UPDATE_SONGS to canUpdateSongs,
+                    TAG_PLAYLIST_ID to playlistId
                 )
             }
     }

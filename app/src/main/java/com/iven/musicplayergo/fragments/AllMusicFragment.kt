@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.content.res.ColorStateList
 import android.os.Bundle
+import android.util.TypedValue
 import android.view.*
 import androidx.appcompat.widget.SearchView
 import androidx.core.content.ContextCompat
@@ -24,9 +25,9 @@ import com.acerem.musicplayerar.extensions.toName
 import com.acerem.musicplayerar.models.Music
 import com.acerem.musicplayerar.player.MediaPlayerHolder
 import com.acerem.musicplayerar.ui.MediaControlInterface
+import com.acerem.musicplayerar.ui.SelectionStateController
 import com.acerem.musicplayerar.ui.UIControlInterface
 import com.acerem.musicplayerar.utils.Lists
-import com.acerem.musicplayerar.utils.Popups
 import com.acerem.musicplayerar.utils.Theming
 import me.zhanghai.android.fastscroll.FastScrollerBuilder
 import me.zhanghai.android.fastscroll.PopupTextProvider
@@ -51,6 +52,9 @@ class AllMusicFragment : Fragment(), SearchView.OnQueryTextListener {
     private var mSorting = GoPreferences.getPrefsInstance().allMusicSorting
 
     private var mAllMusic: List<Music>? = null
+    private var actionMode: ActionMode? = null
+    private val isActionMode get() = actionMode != null
+    private val mSelectionController = SelectionStateController<Long>()
 
     private val sIsFastScrollerPopup get() = (mSorting == GoConstants.ASCENDING_SORTING || mSorting == GoConstants.DESCENDING_SORTING) && GoPreferences.getPrefsInstance().songsVisualization != GoConstants.FN
 
@@ -210,6 +214,80 @@ class AllMusicFragment : Fragment(), SearchView.OnQueryTextListener {
 
     override fun onQueryTextSubmit(query: String?) = false
 
+    private fun startActionMode() {
+        if (!isActionMode) {
+            actionMode = _allMusicFragmentBinding?.searchToolbar?.startActionMode(actionModeCallback)
+        }
+        updateActionModeState()
+    }
+
+    private fun updateActionModeState() {
+        actionMode?.title = mSelectionController.selectionCount().toString()
+        actionMode?.menu?.findItem(R.id.action_hide)?.isVisible = false
+        actionMode?.menu?.findItem(R.id.action_select_all)?.isVisible =
+            mSelectionController.selectionCount() < (mAllMusic?.size ?: 0)
+        actionMode?.menu?.findItem(R.id.action_clear_selection)?.isVisible =
+            mSelectionController.hasSelection()
+    }
+
+    private fun updateSongSelectionBackground(view: View, selected: Boolean) {
+        if (selected) {
+            view.setBackgroundColor(
+                ColorUtils.setAlphaComponent(Theming.resolveThemeColor(resources), 72)
+            )
+            return
+        }
+        val typedValue = TypedValue()
+        requireContext().theme.resolveAttribute(android.R.attr.selectableItemBackground, typedValue, true)
+        view.setBackgroundResource(typedValue.resourceId)
+    }
+
+    private val actionModeCallback = object : ActionMode.Callback {
+        override fun onCreateActionMode(mode: ActionMode?, menu: Menu?): Boolean {
+            requireActivity().menuInflater.inflate(R.menu.menu_action_mode, menu)
+            return true
+        }
+
+        override fun onPrepareActionMode(mode: ActionMode?, menu: Menu?) = false
+
+        override fun onActionItemClicked(mode: ActionMode?, item: MenuItem?): Boolean {
+            return when (item?.itemId) {
+                R.id.action_add_to_playlist -> {
+                    val selectedSongs = mAllMusic.orEmpty().filter { song ->
+                        song.id != null && mSelectionController.isSelected(song.id)
+                    }
+                    if (selectedSongs.isNotEmpty()) {
+                        mUIControlInterface.onAddSongsToPlaylist(selectedSongs)
+                    }
+                    stopActionMode()
+                    true
+                }
+                R.id.action_select_all -> {
+                    mSelectionController.selectAll(mAllMusic.orEmpty().mapNotNull { song -> song.id })
+                    _allMusicFragmentBinding?.allMusicRv?.adapter?.notifyDataSetChanged()
+                    updateActionModeState()
+                    true
+                }
+                R.id.action_clear_selection -> {
+                    stopActionMode()
+                    true
+                }
+                else -> false
+            }
+        }
+
+        override fun onDestroyActionMode(mode: ActionMode?) {
+            actionMode = null
+            mSelectionController.clear()
+            _allMusicFragmentBinding?.allMusicRv?.adapter?.notifyDataSetChanged()
+        }
+    }
+
+    private fun stopActionMode() {
+        actionMode?.finish()
+        actionMode = null
+    }
+
     private inner class AllMusicAdapter : RecyclerView.Adapter<AllMusicAdapter.SongsHolder>(), PopupTextProvider {
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): SongsHolder {
@@ -252,6 +330,18 @@ class AllMusicFragment : Fragment(), SearchView.OnQueryTextListener {
                         getString(R.string.artist_and_album, itemSong?.artist, itemSong?.album)
 
                     root.setOnClickListener {
+                        itemSong?.id?.let { songId ->
+                            if (isActionMode) {
+                                mSelectionController.toggle(songId)
+                                notifyItemChanged(absoluteAdapterPosition)
+                                if (!mSelectionController.hasSelection()) {
+                                    stopActionMode()
+                                } else {
+                                    updateActionModeState()
+                                }
+                                return@setOnClickListener
+                            }
+                        }
                         with(MediaPlayerHolder.getInstance()) {
                             if (isCurrentSongFM) currentSongFM = null
                         }
@@ -263,15 +353,20 @@ class AllMusicFragment : Fragment(), SearchView.OnQueryTextListener {
                     }
 
                     root.setOnLongClickListener {
-                        val vh = _allMusicFragmentBinding?.allMusicRv?.findViewHolderForAdapterPosition(absoluteAdapterPosition)
-                        Popups.showPopupForSongs(
-                            requireActivity(),
-                            vh?.itemView,
-                            itemSong,
-                            GoConstants.ARTIST_VIEW
-                        )
-                        return@setOnLongClickListener true
+                        itemSong?.id?.let { songId ->
+                            startActionMode()
+                            mSelectionController.select(songId)
+                            notifyItemChanged(absoluteAdapterPosition)
+                            updateActionModeState()
+                            return@setOnLongClickListener true
+                        }
+                        false
                     }
+
+                    updateSongSelectionBackground(
+                        root,
+                        itemSong?.id != null && mSelectionController.isSelected(itemSong.id)
+                    )
                 }
             }
         }

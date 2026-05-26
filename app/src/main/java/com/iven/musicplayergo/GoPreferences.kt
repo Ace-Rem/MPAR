@@ -6,6 +6,7 @@ import androidx.preference.PreferenceManager
 import com.acerem.musicplayerar.models.Music
 import com.acerem.musicplayerar.models.NotificationAction
 import com.acerem.musicplayerar.models.SavedEqualizerSettings
+import com.acerem.musicplayerar.models.SleepVolumeAutomation
 import com.acerem.musicplayerar.models.Sorting
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.Types
@@ -46,6 +47,10 @@ class GoPreferences(context: Context) {
             SavedEqualizerSettings::class.java
         )
 
+    var sleepVolumeAutomation: SleepVolumeAutomation?
+        get() = getObjectForClass("sleep_volume_automation_pref", SleepVolumeAutomation::class.java)
+        set(value) = putObjectForClass("sleep_volume_automation_pref", value, SleepVolumeAutomation::class.java)
+
     var favorites: List<Music>?
         get() = getObjectForType("favorite_songs_pref", typeFavorites)
         set(value) = putObjectForType("favorite_songs_pref", value, typeFavorites)
@@ -71,14 +76,18 @@ class GoPreferences(context: Context) {
         set(value) = mPrefs.edit { putInt("color_primary_pref", value) }
 
     var activeTabsDef: List<String>
-        get() = getObjectForType("active_tabs_def_pref", typeActiveTabs)
-            ?: GoConstants.DEFAULT_ACTIVE_FRAGMENTS
-        set(value) = putObjectForType("active_tabs_def_pref", value, typeActiveTabs)
+        get() = migrateTabs(
+            getObjectForType("active_tabs_def_pref", typeActiveTabs)
+                ?: GoConstants.DEFAULT_ACTIVE_FRAGMENTS
+        )
+        set(value) = putObjectForType("active_tabs_def_pref", migrateTabs(value), typeActiveTabs)
 
     var activeTabs: List<String>
-        get() = getObjectForType("active_tabs_pref", typeActiveTabs)
-            ?: GoConstants.DEFAULT_ACTIVE_FRAGMENTS
-        set(value) = putObjectForType("active_tabs_pref", value, typeActiveTabs)
+        get() = migrateTabs(
+            getObjectForType("active_tabs_pref", typeActiveTabs)
+                ?: GoConstants.DEFAULT_ACTIVE_FRAGMENTS
+        )
+        set(value) = putObjectForType("active_tabs_pref", migrateTabs(value), typeActiveTabs)
 
     var onListEnded
         get() = mPrefs.getString("on_list_ended_pref", GoConstants.CONTINUE)
@@ -210,6 +219,21 @@ class GoPreferences(context: Context) {
                 e.printStackTrace()
                 null
             }
+        }
+    }
+
+    private fun migrateTabs(tabs: List<String>): List<String> {
+        val updatedTabs = tabs.map { tab ->
+            if (tab == GoConstants.ARTISTS_TAB) {
+                GoConstants.PLAYLISTS_TAB
+            } else {
+                tab
+            }
+        }
+        return if (updatedTabs.contains(GoConstants.SETTINGS_TAB)) {
+            updatedTabs
+        } else {
+            updatedTabs + GoConstants.SETTINGS_TAB
         }
     }
 

@@ -176,7 +176,7 @@ object Theming {
 
     @JvmStatic
     fun getTabIcon(tab: String) = when (tab) {
-        GoConstants.ARTISTS_TAB -> R.drawable.ic_playlist
+        GoConstants.ARTISTS_TAB, GoConstants.PLAYLISTS_TAB -> R.drawable.ic_playlist
         GoConstants.ALBUM_TAB -> R.drawable.ic_library_music
         GoConstants.SONGS_TAB -> R.drawable.ic_music_note
         GoConstants.FOLDERS_TAB -> R.drawable.ic_folder_music
@@ -185,7 +185,7 @@ object Theming {
 
     @JvmStatic
     fun getTabAccessibilityText(tab: String) = when (tab) {
-        GoConstants.ARTISTS_TAB -> R.string.artists
+        GoConstants.ARTISTS_TAB, GoConstants.PLAYLISTS_TAB -> R.string.playlists
         GoConstants.ALBUM_TAB -> R.string.albums
         GoConstants.SONGS_TAB -> R.string.songs
         GoConstants.FOLDERS_TAB -> R.string.folders

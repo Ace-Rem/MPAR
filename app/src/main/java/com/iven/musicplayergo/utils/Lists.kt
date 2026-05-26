@@ -12,6 +12,7 @@ import com.acerem.musicplayerar.R
 import com.acerem.musicplayerar.extensions.findSorting
 import com.acerem.musicplayerar.extensions.toFormattedDuration
 import com.acerem.musicplayerar.models.Music
+import com.acerem.musicplayerar.models.Playlist
 import com.acerem.musicplayerar.models.Sorting
 import com.acerem.musicplayerar.ui.UIControlInterface
 import java.util.*
@@ -70,6 +71,26 @@ object Lists {
     }
 
     @JvmStatic
+    fun processQueryForPlaylists(query: String?, playlists: List<Playlist>?): List<Playlist>? {
+        val filteredPlaylists = mutableListOf<Playlist>()
+
+        return try {
+            playlists?.iterator()?.let { iterate ->
+                while (iterate.hasNext()) {
+                    val playlist = iterate.next()
+                    if (playlist.name.lowercase().contains(query?.lowercase()!!)) {
+                        filteredPlaylists.add(playlist)
+                    }
+                }
+            }
+            filteredPlaylists
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
+
+    @JvmStatic
     fun getSortedList(id: Int, list: MutableList<String>?) = when (id) {
         GoConstants.ASCENDING_SORTING -> list?.apply {
             Collections.sort(this, String.CASE_INSENSITIVE_ORDER)
@@ -86,6 +107,15 @@ object Lists {
             transformNullToEmpty(it)
         }?.toMutableList()
         return getSortedList(id, withoutNulls)
+    }
+
+    @JvmStatic
+    fun getSortedPlaylists(id: Int, list: List<Playlist>?): List<Playlist>? {
+        return when (id) {
+            GoConstants.ASCENDING_SORTING -> list?.sortedBy { it.name.lowercase(Locale.getDefault()) }
+            GoConstants.DESCENDING_SORTING -> list?.sortedBy { it.name.lowercase(Locale.getDefault()) }?.asReversed()
+            else -> list?.sortedByDescending { it.createdAt }
+        }
     }
 
     private fun transformNullToEmpty(toTrans: String?): String {

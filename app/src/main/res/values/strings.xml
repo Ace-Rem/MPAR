@@ -2,10 +2,16 @@
 <resources>
     <!-- Dialogs / Buttons -->
     <string name="ok">OK</string>
+    <string name="save">Save</string>
     <string name="cancel">Cancel</string>
     <string name="yes">Yes</string>
     <string name="no">No</string>
     <string name="delete">Delete</string>
+    <string name="playlist_rename">Rename playlist</string>
+    <string name="playlist_delete">Delete playlist</string>
+    <string name="playlist_delete_confirm">Delete %1$s?</string>
+    <string name="playlist_name_hint">Playlist name</string>
+    <string name="create_playlist">+ Create playlist</string>
     <string name="on_close_activity">Stop playback?</string>
     <string name="queue_songs_clear">Clear queue?</string>
     <string name="favorites_clear">Clear all favorites?</string>
@@ -18,6 +24,7 @@
     <string name="sorting_pref_reset_neutral">Stop asking</string>
     <!-- Main - Fragments titles -->
     <string name="artists">Artists</string>
+    <string name="playlists">Playlists</string>
     <string name="albums">Albums</string>
     <string name="songs">Songs</string>
     <string name="folders">Folders</string>
@@ -43,8 +50,11 @@
     <string name="shuffle_am">Shuffle all songs</string>
     <string name="shuffle_sa">Shuffle selected album</string>
     <string name="queue_add">Enqueue</string>
+    <string name="add_to_playlist">Add to playlist</string>
     <string name="favorite_add">Favorite</string>
     <string name="filter_popup_title">Hide</string>
+    <string name="select_all">Select all</string>
+    <string name="clear_selection">Clear selection</string>
     <string name="filters_clear">Clear filters\?</string>
     <string name="filters_error">Could not open hidden artists/folders/albums.</string>
     <!-- Queue -->
@@ -62,6 +72,12 @@
     <string name="sleeptimer_enabled">Stop playback %1s after</string>
     <string name="sleeptimer_stop">Stop</string>
     <string name="sleeptimer_cancel_desc">Stop sleep timer</string>
+    <string name="sleep_volume_automation">Sleep volume automation</string>
+    <string name="automation_enabled">Enable automation</string>
+    <string name="automation_start_time">Start time</string>
+    <string name="automation_start_volume">Start volume (%)</string>
+    <string name="automation_end_volume">End volume (%)</string>
+    <string name="automation_step_minutes">Minutes per 1%% step</string>
     <!-- other content descriptions -->
     <string name="content_skip_prev">Skip to previous</string>
     <string name="content_play">Play/pause</string>

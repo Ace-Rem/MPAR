@@ -40,13 +40,16 @@ import com.acerem.musicplayerar.R
 import com.acerem.musicplayerar.extensions.*
 import com.acerem.musicplayerar.models.Music
 import com.acerem.musicplayerar.models.SavedEqualizerSettings
+import com.acerem.musicplayerar.models.SleepVolumeAutomation
 import com.acerem.musicplayerar.ui.MainActivity
 import com.acerem.musicplayerar.ui.UIControlInterface
 import com.acerem.musicplayerar.utils.Lists
 import com.acerem.musicplayerar.utils.Versioning
 import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledExecutorService
+import java.util.concurrent.ScheduledFuture
 import java.util.concurrent.TimeUnit
+import java.util.Calendar
 import kotlin.math.ln
 
 
@@ -144,6 +147,8 @@ class MediaPlayerHolder:
     private lateinit var mediaPlayer: MediaPlayer
     private var mExecutor: ScheduledExecutorService? = null
     private var mSeekBarPositionUpdateTask: Runnable? = null
+    private var mVolumeAutomationExecutor: ScheduledExecutorService? = null
+    private var mVolumeAutomationFuture: ScheduledFuture<*>? = null
 
     var currentSong: Music? = null
     private var mPlayingSongs: List<Music>? = null
@@ -201,6 +206,7 @@ class MediaPlayerHolder:
         registerActionsReceiver()
         mPlayerService.configureMediaSession()
         openOrCloseAudioEffectAction(AudioEffect.ACTION_OPEN_AUDIO_EFFECT_CONTROL_SESSION)
+        restoreSleepVolumeAutomation()
     }
 
     fun getMediaMetadataCompat() = mMediaMetadataCompat
@@ -272,6 +278,8 @@ class MediaPlayerHolder:
     }
 
     fun getCurrentAlbumSize() = mPlayingSongs?.size ?: 0
+
+    fun getCurrentSongs(): List<Music>? = mPlayingSongs
 
     private fun openOrCloseAudioEffectAction(event: String) {
         mPlayerService.sendBroadcast(
@@ -987,6 +995,7 @@ class MediaPlayerHolder:
     fun setPreciseVolume(percent: Int) {
 
         currentVolumeInPercent = percent
+        GoPreferences.getPrefsInstance().latestVolume = percent
 
         if (isMediaPlayer) {
             fun volFromPercent(percent: Int): Float {
@@ -996,6 +1005,81 @@ class MediaPlayerHolder:
             val new = volFromPercent(percent)
             mediaPlayer.setVolume(new, new)
         }
+        if (::mediaPlayerInterface.isInitialized) {
+            mediaPlayerInterface.onPlayerVolumeChanged(percent)
+        }
+    }
+
+    fun saveSleepVolumeAutomation(config: SleepVolumeAutomation) {
+        GoPreferences.getPrefsInstance().sleepVolumeAutomation = config
+        if (config.enabled) {
+            scheduleSleepVolumeAutomation(config)
+        } else {
+            cancelSleepVolumeAutomation(clearPrefs = false)
+        }
+    }
+
+    fun getSleepVolumeAutomation(): SleepVolumeAutomation? =
+        GoPreferences.getPrefsInstance().sleepVolumeAutomation
+
+    private fun restoreSleepVolumeAutomation() {
+        GoPreferences.getPrefsInstance().sleepVolumeAutomation?.let { config ->
+            if (config.enabled) {
+                scheduleSleepVolumeAutomation(config)
+            }
+        }
+    }
+
+    fun cancelSleepVolumeAutomation(clearPrefs: Boolean) {
+        mVolumeAutomationFuture?.cancel(true)
+        mVolumeAutomationFuture = null
+        mVolumeAutomationExecutor?.shutdownNow()
+        mVolumeAutomationExecutor = null
+        if (clearPrefs) {
+            GoPreferences.getPrefsInstance().sleepVolumeAutomation =
+                GoPreferences.getPrefsInstance().sleepVolumeAutomation?.copy(enabled = false)
+        }
+    }
+
+    private fun scheduleSleepVolumeAutomation(config: SleepVolumeAutomation) {
+        cancelSleepVolumeAutomation(clearPrefs = false)
+
+        val targetVolume = config.endVolumePercent.coerceIn(0, 100)
+        var currentVolume = config.startVolumePercent.coerceIn(0, 100)
+        val stepMillis = TimeUnit.MINUTES.toMillis(config.stepMinutes.coerceAtLeast(1).toLong())
+        val isIncreasing = targetVolume >= currentVolume
+        var firstTick = true
+
+        val startAt = Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, config.startHour)
+            set(Calendar.MINUTE, config.startMinute)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }
+
+        val initialDelay = (startAt.timeInMillis - System.currentTimeMillis()).coerceAtLeast(0L)
+
+        mVolumeAutomationExecutor = Executors.newSingleThreadScheduledExecutor()
+        mVolumeAutomationFuture = mVolumeAutomationExecutor?.scheduleAtFixedRate({
+            if (firstTick) {
+                firstTick = false
+                setPreciseVolume(currentVolume)
+                if (currentVolume == targetVolume) {
+                    cancelSleepVolumeAutomation(clearPrefs = false)
+                }
+                return@scheduleAtFixedRate
+            }
+
+            currentVolume = if (isIncreasing) {
+                (currentVolume + 1).coerceAtMost(targetVolume)
+            } else {
+                (currentVolume - 1).coerceAtLeast(targetVolume)
+            }
+            setPreciseVolume(currentVolume)
+            if (currentVolume == targetVolume) {
+                cancelSleepVolumeAutomation(clearPrefs = false)
+            }
+        }, initialDelay, stepMillis, TimeUnit.MILLISECONDS)
     }
 
     fun stopPlaybackService(stopPlayback: Boolean, fromUser: Boolean, fromFocus: Boolean) {
