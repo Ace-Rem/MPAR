@@ -771,10 +771,15 @@ class MainActivity : BaseActivity(), UIControlInterface, MediaControlInterface {
                 return
             }
             openDetailsFragment(
-                selectedArtistOrFolder,
-                mMediaPlayerHolder.launchedBy,
-                mMediaPlayerHolder.currentSong?.id
-            )
+            selectedArtistOrFolder,
+            mMediaPlayerHolder.launchedBy,
+            mMediaPlayerHolder.currentSong?.id,
+            playlistId = if (mMediaPlayerHolder.launchedBy == GoConstants.PLAYLIST_VIEW) {
+                mMediaPlayerHolder.currentPlaylistId
+            } else {
+                null
+            }
+        )
         }
     }
 

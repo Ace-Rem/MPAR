@@ -68,7 +68,7 @@
     <string name="content_playback_speed">Playback speed</string>
     <string name="speed_3">Normal</string>
     <!-- Sleep timer-->
-    <string name="sleeptimer">Sleep timer</string>
+    <string name="sleeptimer">Hẹn giờ ngủ</string>
     <string name="sleeptimer_enabled">Stop playback %1s after</string>
     <string name="sleeptimer_stop">Stop</string>
     <string name="sleeptimer_cancel_desc">Stop sleep timer</string>

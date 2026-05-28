@@ -131,7 +131,7 @@ class GoPreferences(context: Context) {
         set(value) = mPrefs.edit { putInt("fast_seeking_pref", value) }
 
     var isEqForced
-        get() = mPrefs.getBoolean("eq_pref", false)
+        get() = mPrefs.getBoolean("eq_pref", true)
         set(value) = mPrefs.edit { putBoolean("eq_pref", value) }
 
     var isPreciseVolumeEnabled

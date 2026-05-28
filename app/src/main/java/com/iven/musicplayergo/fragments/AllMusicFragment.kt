@@ -210,15 +210,17 @@ class AllMusicFragment : Fragment(), SearchView.OnQueryTextListener {
     }
 
     private fun updateActionModeState() {
-        actionMode?.title = mSelectionController.selectionCount().toString()
-        actionMode?.menu?.findItem(R.id.action_hide)?.isVisible = false
-        actionMode?.menu?.findItem(R.id.action_select_all)?.isVisible =
-            mSelectionController.selectionCount() < (mAllMusic?.size ?: 0)
-        actionMode?.menu?.findItem(R.id.action_clear_selection)?.isVisible =
-            mSelectionController.hasSelection()
-        
-        actionMode?.menu?.findItem(R.id.action_remove_from_playlist)?.isVisible = false
-    }
+
+    actionMode?.title = mSelectionController.selectionCount().toString()
+
+    actionMode?.menu?.findItem(R.id.action_hide)?.isVisible = false
+
+    actionMode?.menu?.findItem(R.id.action_select_all)?.isVisible =
+        mSelectionController.selectionCount() < (mAllMusic?.size ?: 0)
+
+    actionMode?.menu?.findItem(R.id.action_clear_selection)?.isVisible =
+        mSelectionController.hasSelection()
+}
 
     private fun updateSongSelectionBackground(view: View, selected: Boolean) {
         if (selected) {
@@ -270,6 +272,7 @@ class AllMusicFragment : Fragment(), SearchView.OnQueryTextListener {
                     stopActionMode()
                     true
                 }
+                
                 else -> false
             }
         }

@@ -93,6 +93,7 @@ class DetailsFragment : Fragment(), SearchView.OnQueryTextListener {
     private var sCanUpdateSongs = false
     private var sAlbumSwapped = false
     private var sOpenNewDetailsFragment = false
+    private var sViewsInitialized = false
 
     private val mMediaPlayerHolder get() = MediaPlayerHolder.getInstance()
 
@@ -181,34 +182,54 @@ class DetailsFragment : Fragment(), SearchView.OnQueryTextListener {
         mMusicViewModel =
             ViewModelProvider(requireActivity())[MusicViewModel::class.java].apply {
                 deviceMusic.observe(viewLifecycleOwner) { returnedMusic ->
-                    if (!returnedMusic.isNullOrEmpty()) {
-
-                        mSongsList = getSongSource()
-
-                        if (sLaunchedByArtistView) {
-                            mSelectedAlbum = when {
-                                mSelectedAlbumPosition != RecyclerView.NO_POSITION -> mSelectedArtistAlbums?.get(
-                                    mSelectedAlbumPosition
-                                )
-                                else -> {
-                                    mSelectedAlbumPosition = 0
-                                    mSelectedArtistAlbums?.first()
+                    if (!returnedMusic.isNullOrEmpty() && !sViewsInitialized) {
+                        // If we're in PLAYLIST_VIEW, ensure playlists are loaded before initializing
+                        if (sLaunchedByPlaylistView && mSelectedPlaylistId != null) {
+                            // Check if playlists are already loaded
+                            if (!playlists.value.isNullOrEmpty()) {
+                                initializeDetailsView(view)
+                            } else {
+                                // Wait for playlists to be loaded
+                                playlists.observe(viewLifecycleOwner) { playlists ->
+                                    if (!playlists.isNullOrEmpty() && !sViewsInitialized) {
+                                        initializeDetailsView(view)
+                                    }
                                 }
                             }
-                            (mSelectedAlbum?.title?.findSorting(mLaunchedBy) ?: Lists.getUserSorting(mLaunchedBy))?.let { sorting ->
-                                mSongsSorting = sorting.sorting
-                            }
                         } else {
-                            (mSelectedArtistOrFolder?.findSorting(mLaunchedBy) ?: Lists.getUserSorting(mLaunchedBy))?.let { sorting ->
-                                mSongsSorting = sorting.sorting
-                            }
+                            initializeDetailsView(view)
                         }
-
-                        setupToolbar()
-                        setupViews(view)
                     }
                 }
             }
+    }
+
+    private fun initializeDetailsView(view: View) {
+        sViewsInitialized = true
+
+        mSongsList = getSongSource()
+
+        if (sLaunchedByArtistView) {
+            mSelectedAlbum = when {
+                mSelectedAlbumPosition != RecyclerView.NO_POSITION -> mSelectedArtistAlbums?.get(
+                    mSelectedAlbumPosition
+                )
+                else -> {
+                    mSelectedAlbumPosition = 0
+                    mSelectedArtistAlbums?.first()
+                }
+            }
+            (mSelectedAlbum?.title?.findSorting(mLaunchedBy) ?: Lists.getUserSorting(mLaunchedBy))?.let { sorting ->
+                mSongsSorting = sorting.sorting
+            }
+        } else {
+            (mSelectedArtistOrFolder?.findSorting(mLaunchedBy) ?: Lists.getUserSorting(mLaunchedBy))?.let { sorting ->
+                mSongsSorting = sorting.sorting
+            }
+        }
+
+        setupToolbar()
+        setupViews(view)
     }
 
     private fun handleSwipeAction(viewHolder: RecyclerView.ViewHolder, direction: Int) {
@@ -335,9 +356,9 @@ class DetailsFragment : Fragment(), SearchView.OnQueryTextListener {
                 selectedAlbumContainer.handleViewVisibility(show = false)
                 
                 // Show album artwork UI for ALBUM_VIEW, FOLDER_VIEW, PLAYLIST_VIEW
-                albumViewCoverContainer.handleViewVisibility(show = true)
+                albumViewCoverContainer.handleViewVisibility(show = !mSongsList.isNullOrEmpty())
                 
-                val firstSong = mSongsList?.first()
+                val firstSong = mSongsList?.firstOrNull()
                 selectedAlbumViewTitle.text = if (sLaunchedByPlaylistView) {
                     mSelectedPlaylist?.name
                 } else {
@@ -850,7 +871,7 @@ private fun updateActionModeState() {
                             updateSelectedAlbumTitle()
                             swapAlbum(itemAlbum?.music)
                         } else {
-                            if (sPlayFirstSong) {
+                            if (sPlayFirstSong && !mSongsList.isNullOrEmpty()) {
                                 with(mMediaPlayerHolder) {
                                     if (isCurrentSongFM) currentSongFM = null
                                 }

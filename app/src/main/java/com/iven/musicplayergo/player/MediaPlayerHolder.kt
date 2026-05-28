@@ -488,7 +488,6 @@ class MediaPlayerHolder:
     }
 
     fun repeatSong(startFrom: Int) {
-        isRepeat1X = false
         mediaPlayer.setOnSeekCompleteListener { mp ->
             mp.setOnSeekCompleteListener(null)
             play()
@@ -683,11 +682,6 @@ class MediaPlayerHolder:
         }
 
         if (!sPlaybackSpeedPersisted) currentPlaybackSpeed = 1.0F
-
-        if (isRepeat1X or isLooping) {
-            isRepeat1X = false
-            isLooping = false
-        }
 
         if (GoPreferences.getPrefsInstance().isPreciseVolumeEnabled) {
             setPreciseVolume(currentVolumeInPercent)
