@@ -738,6 +738,7 @@ class MainActivity : BaseActivity(), UIControlInterface, MediaControlInterface {
         return when (mMediaPlayerHolder.launchedBy) {
             GoConstants.FOLDER_VIEW -> selectedSong?.relativePath
             GoConstants.ARTIST_VIEW -> selectedSong?.artist
+            GoConstants.PLAYLIST_VIEW -> mMediaPlayerHolder.currentPlaylistName
             else -> selectedSong?.album
         }
     }
@@ -795,7 +796,8 @@ class MainActivity : BaseActivity(), UIControlInterface, MediaControlInterface {
             openDetailsFragment(
                 this,
                 mMediaPlayerHolder.launchedBy,
-                mMediaPlayerHolder.currentSong?.id
+                mMediaPlayerHolder.currentSong?.id,
+                if (mMediaPlayerHolder.launchedBy == GoConstants.PLAYLIST_VIEW) mMediaPlayerHolder.currentPlaylistId else null
             )
         }
     }
@@ -851,7 +853,7 @@ class MainActivity : BaseActivity(), UIControlInterface, MediaControlInterface {
         mMediaPlayerHolder.initMediaPlayer(song, forceReset = false)
     }
 
-    override fun onSongSelected(song: Music?, songs: List<Music>?, songLaunchedBy: String) {
+    override fun onSongSelected(song: Music?, songs: List<Music>?, songLaunchedBy: String, playlistId: Long?, playlistName: String?) {
         with(mMediaPlayerHolder) {
             if (isSongFromPrefs) isSongFromPrefs = false
             if (!isPlay) isPlay = true
@@ -862,7 +864,7 @@ class MainActivity : BaseActivity(), UIControlInterface, MediaControlInterface {
                 mMusicViewModel.deviceAlbumsByArtist
             )
             if (!isCurrentSongFM) {
-                updateCurrentSong(song, albumSongs, songLaunchedBy)
+                updateCurrentSong(song, albumSongs, songLaunchedBy, playlistId, playlistName)
             } else {
                 mPlayerControlsPanelBinding.songProgress.progress = 0
                 mPlayerControlsPanelBinding.songProgress.max = song?.duration!!.toInt()

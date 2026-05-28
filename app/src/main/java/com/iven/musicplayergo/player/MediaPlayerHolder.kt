@@ -153,6 +153,8 @@ class MediaPlayerHolder:
     var currentSong: Music? = null
     private var mPlayingSongs: List<Music>? = null
     var launchedBy = GoConstants.ARTIST_VIEW
+    var currentPlaylistId: Long? = null
+    var currentPlaylistName: String? = null
 
     var currentVolumeInPercent = GoPreferences.getPrefsInstance().latestVolume
     private var currentPlaybackSpeed = GoPreferences.getPrefsInstance().latestPlaybackSpeed
@@ -262,10 +264,12 @@ class MediaPlayerHolder:
         }
     }
 
-    fun updateCurrentSong(song: Music?, albumSongs: List<Music>?, songLaunchedBy: String) {
+    fun updateCurrentSong(song: Music?, albumSongs: List<Music>?, songLaunchedBy: String, playlistId: Long? = null, playlistName: String? = null) {
         currentSong = song
         mPlayingSongs = albumSongs
         launchedBy = songLaunchedBy
+        currentPlaylistId = playlistId
+        currentPlaylistName = playlistName
     }
 
     fun updateCurrentSongs(sortedMusic: List<Music>?) {
@@ -1099,6 +1103,16 @@ class MediaPlayerHolder:
         mVolumeAutomationFuture = mVolumeAutomationExecutor?.scheduleAtFixedRate({
             // BỌC TOÀN BỘ LOGIC VÀO TRY-CATCH
             try {
+                // Kiểm tra và đảm bảo playback không bị tạm dừng
+                if (!isPlaying && firstTick == false) {
+                    try {
+                        mediaPlayer.start()
+                        isPlay = true
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                }
+                
                 if (firstTick) {
                     firstTick = false
                     setPreciseVolume(currentVolume)
@@ -1117,6 +1131,15 @@ class MediaPlayerHolder:
                 setPreciseVolume(currentVolume)
                 
                 if (currentVolume == targetVolume) {
+                    // Đảm bảo playback vẫn tiếp tục ngay cả khi volume về 0
+                    if (!isPlaying) {
+                        try {
+                            mediaPlayer.start()
+                            isPlay = true
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                        }
+                    }
                     cancelSleepVolumeAutomation(clearPrefs = false)
                 }
             } catch (e: Exception) {

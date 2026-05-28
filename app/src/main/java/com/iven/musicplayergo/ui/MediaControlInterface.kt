@@ -3,7 +3,7 @@ package com.acerem.musicplayerar.ui
 import com.acerem.musicplayerar.models.Music
 
 interface MediaControlInterface {
-    fun onSongSelected(song: Music?, songs: List<Music>?, songLaunchedBy: String)
+    fun onSongSelected(song: Music?, songs: List<Music>?, songLaunchedBy: String, playlistId: Long? = null, playlistName: String? = null)
     fun onSongsShuffled(songs: List<Music>?, songLaunchedBy: String)
     fun onAddToQueue(song: Music?)
     // first: force play, second: restore song

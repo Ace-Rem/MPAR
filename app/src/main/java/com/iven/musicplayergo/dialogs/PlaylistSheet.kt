@@ -64,8 +64,8 @@ class PlaylistSheet : BottomSheetDialogFragment() {
 
             mMusicViewModel.playlists.observe(viewLifecycleOwner) { playlists ->
                 adapter.submit(playlists)
-
-                emptyStateText?.handleViewVisibility(show = playlists.isNullOrEmpty())
+                // Không hiển thị empty state vì luôn có "Tạo danh sách phát" item
+                emptyStateText.handleViewVisibility(show = false)
             }
         }
     }

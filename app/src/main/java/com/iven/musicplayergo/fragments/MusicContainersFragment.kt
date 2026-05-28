@@ -123,6 +123,7 @@ class MusicContainersFragment : Fragment(), SearchView.OnQueryTextListener {
                 mListAdapter.notifyDataSetChanged()
             }
         }
+        updateEmptyState()
 
         _musicContainerListBinding?.searchToolbar?.let { stb ->
             if (stb.menu.size() == 0) {
@@ -210,11 +211,23 @@ class MusicContainersFragment : Fragment(), SearchView.OnQueryTextListener {
         mList = selectedList?.toMutableList()
         trimSelection()
         mListAdapter.notifyDataSetChanged()
+        updateEmptyState()
     }
 
     private fun setPlaylistDataSource(selectedList: List<Playlist>?) {
         mPlaylists = selectedList
         mListAdapter.notifyDataSetChanged()
+        updateEmptyState()
+    }
+
+    private fun updateEmptyState() {
+        val isEmpty = if (sLaunchedByPlaylistView) {
+            mPlaylists.isNullOrEmpty()
+        } else {
+            mList.isNullOrEmpty()
+        }
+        _musicContainerListBinding?.emptyStateText?.handleViewVisibility(show = isEmpty)
+        _musicContainerListBinding?.artistsFoldersRv?.handleViewVisibility(show = !isEmpty)
     }
 
     @SuppressLint("NotifyDataSetChanged")

@@ -857,7 +857,9 @@ private fun updateActionModeState() {
                                 mMediaControlInterface.onSongSelected(
                                     mSongsList?.first(),
                                     itemAlbum?.music,
-                                    mLaunchedBy
+                                    mLaunchedBy,
+                                    if (sLaunchedByPlaylistView) mSelectedPlaylistId else null,
+                                    if (sLaunchedByPlaylistView) mSelectedPlaylist?.name else null
                                 )
                             } else {
                                 sPlayFirstSong = true
@@ -949,7 +951,9 @@ private fun updateActionModeState() {
                         mMediaControlInterface.onSongSelected(
                             itemSong,
                             mSongsList,
-                            mLaunchedBy
+                            mLaunchedBy,
+                            if (sLaunchedByPlaylistView) mSelectedPlaylistId else null,
+                            if (sLaunchedByPlaylistView) mSelectedPlaylist?.name else null
                         )
 
                         if (mSelectedSongId != itemSong?.id) {
