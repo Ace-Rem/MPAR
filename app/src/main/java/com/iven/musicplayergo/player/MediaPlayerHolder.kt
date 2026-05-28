@@ -1087,8 +1087,14 @@ class MediaPlayerHolder:
             set(Calendar.MILLISECOND, 0)
         }
 
-        val initialDelay = (startAt.timeInMillis - System.currentTimeMillis()).coerceAtLeast(0L)
+        val currentTime = System.currentTimeMillis()
+        
+        if (startAt.timeInMillis <= currentTime) {
+            startAt.add(Calendar.DAY_OF_YEAR, 1)
+        }
 
+        val initialDelay = startAt.timeInMillis - currentTime
+        
         mVolumeAutomationExecutor = Executors.newSingleThreadScheduledExecutor()
         mVolumeAutomationFuture = mVolumeAutomationExecutor?.scheduleAtFixedRate({
             // BỌC TOÀN BỘ LOGIC VÀO TRY-CATCH

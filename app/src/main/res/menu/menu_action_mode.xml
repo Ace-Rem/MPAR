@@ -21,4 +21,9 @@
         android:icon="@drawable/ic_visibility_off"
         android:title="@string/filter_popup_title"
         app:showAsAction="ifRoom" />
+    <item
+        android:id="@+id/action_remove_from_playlist"
+        android:icon="@drawable/ic_delete"
+        android:title="@string/remove_from_playlist"
+        app:showAsAction="never" />
 </menu>

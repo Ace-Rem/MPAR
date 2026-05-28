@@ -113,19 +113,7 @@ class AllMusicFragment : Fragment(), SearchView.OnQueryTextListener {
 
             FastScrollerBuilder(allMusicRv).useMd2Style().build()
 
-            shuffleFab.text = mAllMusic?.size.toString()
-            val fabColor = ColorUtils.blendARGB(
-                Theming.resolveColorAttr(requireContext(), R.attr.toolbar_bg),
-                Theming.resolveThemeColor(resources),
-                0.10f
-            )
-            shuffleFab.backgroundTintList = ColorStateList.valueOf(fabColor)
-            shuffleFab.setOnClickListener {
-                mMediaControlInterface.onSongsShuffled(
-                    mAllMusic,
-                    GoConstants.ARTIST_VIEW
-                )
-            }
+            shuffleFab.visibility = View.GONE
 
             searchToolbar.let { stb ->
 
@@ -228,6 +216,8 @@ class AllMusicFragment : Fragment(), SearchView.OnQueryTextListener {
             mSelectionController.selectionCount() < (mAllMusic?.size ?: 0)
         actionMode?.menu?.findItem(R.id.action_clear_selection)?.isVisible =
             mSelectionController.hasSelection()
+        
+        actionMode?.menu?.findItem(R.id.action_remove_from_playlist)?.isVisible = false
     }
 
     private fun updateSongSelectionBackground(view: View, selected: Boolean) {

@@ -211,6 +211,45 @@ class DetailsFragment : Fragment(), SearchView.OnQueryTextListener {
             }
     }
 
+    private fun handleSwipeAction(viewHolder: RecyclerView.ViewHolder, direction: Int) {
+        val position = viewHolder.absoluteAdapterPosition
+        val swipedSong = mSongsList?.get(position) ?: return
+
+        // Kiểm tra bài hát đang bị vuốt có nằm trong danh sách Multi-select hay không
+        val isSwipedSongSelected = swipedSong.id != null && mSelectionController.isSelected(swipedSong.id)
+
+        // Phân loại: Xử lý danh sách đang chọn HOẶC xử lý 1 bài duy nhất
+        val songsToProcess = if (isActionMode && isSwipedSongSelected) {
+            mSongsList?.filter { it.id != null && mSelectionController.isSelected(it.id) } ?: listOf(swipedSong)
+        } else {
+            listOf(swipedSong)
+        }
+
+        if (direction == ItemTouchHelper.RIGHT) {
+            // Vuốt PHẢI = Thêm vào hàng đợi
+            if (songsToProcess.size == 1) {
+                mMediaControlInterface.onAddToQueue(songsToProcess.first())
+            } else {
+                mMediaControlInterface.onAddAlbumToQueue(songsToProcess.toMutableList(), Pair(false, null))
+            }
+        } else {
+            // Vuốt TRÁI = Thêm vào yêu thích
+            songsToProcess.forEach { song ->
+                Lists.addToFavorites(requireContext(), song, canRemove = false, 0, mLaunchedBy)
+            }
+            mUIControlInterface.onFavoriteAddedOrRemoved()
+            mMediaPlayerHolder.onUpdateFavorites()
+        }
+
+        // Dọn dẹp sau khi thao tác
+        if (isActionMode && isSwipedSongSelected) {
+            stopActionMode() // Batch action xong thì tắt đa chọn
+        } else {
+            // Reset lại UI item bị vuốt về chỗ cũ
+            _detailsFragmentBinding?.songsRv?.adapter?.notifyDataSetChanged()
+        }
+    }
+
     private fun setupToolbar() {
         _detailsFragmentBinding?.detailsToolbar?.run {
 
@@ -288,39 +327,43 @@ class DetailsFragment : Fragment(), SearchView.OnQueryTextListener {
                 )
             }
 
-        } else {
+        } else if (sLaunchedByAlbumView || sLaunchedByFolderView || sLaunchedByPlaylistView) {
 
             _detailsFragmentBinding?.run {
 
                 albumsRv.handleViewVisibility(show = false)
                 selectedAlbumContainer.handleViewVisibility(show = false)
+                
+                // Show album artwork UI for ALBUM_VIEW, FOLDER_VIEW, PLAYLIST_VIEW
+                albumViewCoverContainer.handleViewVisibility(show = true)
+                
+                val firstSong = mSongsList?.first()
+                selectedAlbumViewTitle.text = if (sLaunchedByPlaylistView) {
+                    mSelectedPlaylist?.name
+                } else {
+                    mSelectedArtistOrFolder
+                }
+                selectedAlbumViewTitle.isSelected = true
+                selectedAlbumViewArtist.text = firstSong?.artist
+                selectedAlbumViewArtist.isSelected = true
+                selectedAlbumViewSize.text = getString(
+                    R.string.folder_info,
+                    mSongsList?.size
+                )
+                selectedAlbumViewSize.isSelected = true
 
-                if (sLaunchedByFolderView || sLaunchedByPlaylistView) {
-                    albumViewCoverContainer.handleViewVisibility(show = false)
-                    detailsToolbar.subtitle = getString(
-                        R.string.folder_info,
-                        mSongsList?.size
-                    )
-                } else if (sLaunchedByAlbumView) {
-                    val firstSong = mSongsList?.first()
-                    selectedAlbumViewTitle.text = mSelectedArtistOrFolder
-                    selectedAlbumViewTitle.isSelected = true
-                    selectedAlbumViewArtist.text = firstSong?.artist
-                    selectedAlbumViewArtist.isSelected = true
-                    selectedAlbumViewSize.text = getString(
-                        R.string.folder_info,
-                        mSongsList?.size
-                    )
-                    selectedAlbumViewSize.isSelected = true
+                detailsToolbar.subtitle = getString(
+                    R.string.folder_info,
+                    mSongsList?.size
+                )
 
-                    albumViewArt.background.alpha = Theming.getAlbumCoverAlpha(requireContext())
-                    albumViewArt.doOnPreDraw {
-                        val dim = it.width * 2
-                        albumViewArt.layoutParams = LinearLayout.LayoutParams(dim, dim)
-                    }
-                    firstSong?.albumId?.waitForCover(requireContext()) { bmp, error ->
-                        albumViewArt.loadWithError(bmp, error, R.drawable.ic_music_note_cover)
-                    }
+                albumViewArt.background.alpha = Theming.getAlbumCoverAlpha(requireContext())
+                albumViewArt.doOnPreDraw {
+                    val dim = it.width * 2
+                    albumViewArt.layoutParams = LinearLayout.LayoutParams(dim, dim)
+                }
+                firstSong?.albumId?.waitForCover(requireContext()) { bmp, error ->
+                    albumViewArt.loadWithError(bmp, error, R.drawable.ic_music_note_cover)
                 }
 
                 val searchView =
@@ -334,9 +377,7 @@ class DetailsFragment : Fragment(), SearchView.OnQueryTextListener {
                             !hasFocus
                         )
                         detailsToolbar.menu.findItem(R.id.sleeptimer).isVisible = !hasFocus
-                        if (sLaunchedByAlbumView) {
-                            albumViewCoverContainer.slide(!hasFocus())
-                        }
+                        albumViewCoverContainer.slide(!hasFocus())
                     }
                 }
             }
@@ -354,20 +395,12 @@ class DetailsFragment : Fragment(), SearchView.OnQueryTextListener {
             adapter = SongsAdapter()
             FastScrollerBuilder(this).useMd2Style().build()
 
-            ItemTouchHelper(ItemSwipeCallback(isQueueDialog = false, isFavoritesDialog = false) { viewHolder: RecyclerView.ViewHolder,
-                                                                          direction: Int ->
-                val song = mSongsList?.get(viewHolder.absoluteAdapterPosition)
-                if (direction == ItemTouchHelper.RIGHT) {
-                    mMediaControlInterface.onAddToQueue(song)
-                } else {
-                    Lists.addToFavorites(requireContext(), song,
-                        canRemove = false, 0, mLaunchedBy
-                    )
-                    mUIControlInterface.onFavoriteAddedOrRemoved()
-                    mMediaPlayerHolder.onUpdateFavorites()
-                }
-                adapter?.notifyDataSetChanged()
-            }).attachToRecyclerView(this)
+            if (!sLaunchedByFolderView && !sLaunchedByAlbumView && !sLaunchedByPlaylistView) {
+                ItemTouchHelper(ItemSwipeCallback(isQueueDialog = false, isFavoritesDialog = false) { viewHolder: RecyclerView.ViewHolder,
+                                                                                                      direction: Int ->
+                    handleSwipeAction(viewHolder, direction)
+                }).attachToRecyclerView(this)
+            }
         }
 
         view.doOnLayout {
@@ -466,6 +499,8 @@ private fun updateActionModeState() {
         actionMode?.menu?.findItem(R.id.action_clear_selection)?.isVisible =
             mSelectionController.hasSelection()
 
+        actionMode?.menu?.findItem(R.id.action_remove_from_playlist)?.isVisible = sLaunchedByPlaylistView
+
     }
 
     private fun updateSongSelectionBackground(view: View, selected: Boolean) {
@@ -510,6 +545,39 @@ private fun updateActionModeState() {
                     true
                 }
                 
+                // THÊM MỚI: Xử lý nút xóa bài hát khỏi Playlist
+                R.id.action_remove_from_playlist -> {
+                    val playlistId = mSelectedPlaylistId
+                    if (sLaunchedByPlaylistView && playlistId != null) {
+
+                        // 1. Lấy danh sách bài hát đang chọn
+                        val songsToRemove = mSongsList.orEmpty().filter { song ->
+                            song.id != null && mSelectionController.isSelected(song.id)
+                        }
+
+                        if (songsToRemove.isNotEmpty()) {
+                            // 2. Gom tất cả ID bài hát cần xóa vào một List
+                            val songIds = songsToRemove.map { it.id!! }
+
+                            mMusicViewModel.deletePlaylistSongs(playlistId, songIds)
+
+                            // 3. Cập nhật lại giao diện (UI) local ngay lập tức
+                            val updatedList = mSongsList.orEmpty().filter { song ->
+                                song.id == null || !mSelectionController.isSelected(song.id)
+                            }
+
+                            setSongsDataSource(updatedList, updateSongs = sCanUpdateSongs, updateAdapter = true)
+
+                            _detailsFragmentBinding?.detailsToolbar?.subtitle = getString(
+                                R.string.folder_info,
+                                updatedList.size
+                            )
+                        }
+                    }
+                    stopActionMode()
+                    true
+                }
+
                 R.id.action_select_all -> {
                     mSelectionController.selectAll(mSongsList.orEmpty().mapNotNull { song -> song.id })
                     _detailsFragmentBinding?.songsRv?.adapter?.notifyDataSetChanged()

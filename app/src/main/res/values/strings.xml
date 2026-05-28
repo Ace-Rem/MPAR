@@ -233,4 +233,5 @@
     <string name="brown">Brown</string>
     <string name="grey">Grey</string>
     <string name="blue_grey">Blue grey</string>
+    <string name="remove_from_playlist">Xóa khỏi danh sách phát</string>
 </resources>

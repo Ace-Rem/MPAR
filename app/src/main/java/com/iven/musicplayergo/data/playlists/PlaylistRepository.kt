@@ -52,6 +52,10 @@ class PlaylistRepository(
         )
     }
 
+    suspend fun deletePlaylistSongs(playlistId: Long, songIds: List<Long>) {
+        playlistDao.deletePlaylistSongs(playlistId, songIds)
+    }
+
     private fun PlaylistWithEntries.toPlaylist(deviceSongs: List<Music>): Playlist {
         val songsById = deviceSongs.associateBy { it.id }
         val sortedEntries = entries.sortedBy { it.addedAt }

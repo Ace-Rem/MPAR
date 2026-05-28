@@ -285,6 +285,14 @@ class MusicViewModel(application: Application): AndroidViewModel(application) {
         }
     }
 
+    fun deletePlaylistSongs(playlistId: Long, songIds: List<Long>) {
+        mUiScope.launch {
+            withContext(mIoDispatcher) {
+                mPlaylistRepository.deletePlaylistSongs(playlistId, songIds)
+            }
+        }
+    }
+
     fun addSongsToPlaylist(playlistId: Long, songs: List<Music>) {
         mUiScope.launch {
             withContext(mIoDispatcher) {
