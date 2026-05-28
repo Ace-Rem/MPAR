@@ -86,8 +86,8 @@
     <string name="error_builtin_eq">Um erro ocorreu! Use o equalizador do sistema (se existir)!</string>
     <string name="error_sys_eq">Equalizador do sistema não disponível!</string>
     <string name="error_fs_not_allowed_sum">Erro! Desligue a otimização da bateria para o MPGO</string>
-    <string name="error_fs_not_allowed">Algo deu errado! :( Considere desativar a otimização da bateria nas configurações do sistema: Apps &gt; Todos as aplicações &gt; Music Player GO &gt; Bateria &gt; Irrestrito, pois pode fazer com que o serviço do media player pare.</string>
-    <string name="perm_rationale">Conceda ao Music Player GO acesso aos seus ficheiros para reproduzir música.</string>
+    <string name="error_fs_not_allowed">Algo deu errado! :( Considere desativar a otimização da bateria nas configurações do sistema: Apps &gt; Todos as aplicações &gt; Music Player Ace Rem &gt; Bateria &gt; Irrestrito, pois pode fazer com que o serviço do media player pare.</string>
+    <string name="perm_rationale">Conceda ao Music Player Ace Rem acesso aos seus ficheiros para reproduzir música.</string>
     <string name="repeat_enabled">Repetição única ligada.</string>
     <string name="repeat_loop_enabled">Repetir ∞.</string>
     <string name="repeat_disabled">Repetir ∞ desligado.</string>

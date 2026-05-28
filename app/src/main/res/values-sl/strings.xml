@@ -31,7 +31,7 @@
     <string name="repeat_disabled">∞ ponavljanje je izključeno.</string>
     <string name="repeat_loop_enabled">Vključeno je ∞ ponavljanje.</string>
     <string name="repeat_enabled">Vključeno je predvajanje ene pesmi.</string>
-    <string name="perm_rationale">Music Player GO potrebuje dostop do vaših datotek, da lahko predvaja glasbo.</string>
+    <string name="perm_rationale">Music Player Ace Rem potrebuje dostop do vaših datotek, da lahko predvaja glasbo.</string>
     <string name="error_list_ended">Vrsta se je končala.</string>
     <string name="error_no_queue">V čakalni vrsti ni pesmi.</string>
     <string name="error_bad_id">Najprej predvajaj pesem.</string>

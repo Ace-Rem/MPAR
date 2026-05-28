@@ -69,10 +69,10 @@
     <string name="error_list_ended">已到達清單結尾。</string>
     <string name="error_builtin_eq">發生錯誤！請使用系統等化器 (如有提供)。</string>
     <string name="error_sys_eq">系統等化器無法使用。</string>
-    <string name="error_fs_not_allowed_sum">發生錯誤！請為 Music Player GO 停用電池效能最佳化。</string>
+    <string name="error_fs_not_allowed_sum">發生錯誤！請為 Music Player Ace Rem 停用電池效能最佳化。</string>
     <string name="error_fs_not_allowed">"發生一些問題！：(
-請試著前往「系統設定 → 應用程式 → Music Player GO → 電池」並改為「不受限制」，避免媒體播放服務被系統終止。"</string>
-    <string name="perm_rationale">請允許 Music Player GO 存取您的檔案以播放音樂。</string>
+請試著前往「系統設定 → 應用程式 → Music Player Ace Rem → 電池」並改為「不受限制」，避免媒體播放服務被系統終止。"</string>
+    <string name="perm_rationale">請允許 Music Player Ace Rem 存取您的檔案以播放音樂。</string>
     <string name="repeat_enabled">已啟用單曲循環。</string>
     <string name="repeat_loop_enabled">已啟用循環播放。</string>
     <string name="repeat_disabled">已停用循環播放。</string>

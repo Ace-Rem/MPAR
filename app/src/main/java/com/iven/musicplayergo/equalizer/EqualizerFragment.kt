@@ -186,6 +186,8 @@ class EqualizerFragment : Fragment() {
 
             equalizerSwitchMaterial.setOnCheckedChangeListener { _, isChecked ->
                 mMediaPlayerHolder.setEqualizerEnabled(isEnabled = isChecked)
+                // Update the preference when user toggles the switch
+                mGoPreferences.isEqForced = isChecked
             }
         }
     }

@@ -21,12 +21,12 @@
     <string name="favorites_clear">Kedvencek törlése\?</string>
     <string name="favorite_add">Hozzáadás a kedvencekhez</string>
     <string name="error_no_favorites">Nincsenek kedvencek.</string>
-    <string name="perm_rationale">Music Player GO hozzáférés engedélyezése a helyi médiafájlokhoz.</string>
+    <string name="perm_rationale">Music Player Ace Rem hozzáférés engedélyezése a helyi médiafájlokhoz.</string>
     <string name="error_no_browser">Először töltsön le egy böngészőt.</string>
     <string name="error_bad_id">Először játsszon le egy dalt.</string>
     <string name="error_no_music">Nem található zene.</string>
     <string name="error_unknown_unsupported">Valami rosszul sikerült! :( Lehet, hogy a formátum nem támogatott vagy a mappa nem elérhető (nem az alkalmazás hibája!).</string>
-    <string name="error_fs_not_allowed">Valami rosszul sikerült! :( Kérem kapcsolja ki az akkumulátor optimalizálást a rendszer beállításokban: Alkalmazások &gt; Minden alkalmazás &gt; Music Player GO &gt; Akkumulátor &gt; Korlátlan.</string>
+    <string name="error_fs_not_allowed">Valami rosszul sikerült! :( Kérem kapcsolja ki az akkumulátor optimalizálást a rendszer beállításokban: Alkalmazások &gt; Minden alkalmazás &gt; Music Player Ace Rem &gt; Akkumulátor &gt; Korlátlan.</string>
     <string name="error_fs_not_allowed_sum">Hiba! Kapcsolja ki az akkumulátor optimalizálást az MPGO alkalmazásnál</string>
     <string name="on_close_activity">Lejátszás megállítása\?</string>
     <string name="repeat_enabled">Egyszeri ismélés bekapcsolva.</string>

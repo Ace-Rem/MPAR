@@ -62,7 +62,7 @@
     <string name="repeat_enabled">Појединачно понављање укључено.</string>
     <string name="repeat_disabled">∞ понављање искључено.</string>
     <string name="repeat_loop_enabled">∞ понављање укључено.</string>
-    <string name="perm_rationale">Одобри приступ датотекама за Music Player GO да би пуштао музику.</string>
+    <string name="perm_rationale">Одобри приступ датотекама за Music Player Ace Rem да би пуштао музику.</string>
     <string name="category_general">Главно</string>
     <string name="theme_pref_light_title">Светло</string>
     <string name="locale_arabic">арапски</string>
@@ -126,7 +126,7 @@
     <string name="sleeptimer_cancel_desc">Заустави тајмер за спавање</string>
     <string name="error_not_ready">Није могуће учитати музичку библиотеку! :( Уклањање СД картице обнавља Android MediaStore базу података. Покушај поново касније.</string>
     <string name="error_builtin_eq">Дошло је до грешке! Користи системски еквилајзер (ако постоји)!</string>
-    <string name="error_fs_not_allowed">Нешто је кренуло наопако! :( Размисли о искључивању оптимизације батерије у системским поставкама: Апликације &gt; Све апликације &gt; Music Player GO &gt; Батерија &gt; Неограничено, јер би то могло да доведе до заустављања услуге медија плејера.</string>
+    <string name="error_fs_not_allowed">Нешто је кренуло наопако! :( Размисли о искључивању оптимизације батерије у системским поставкама: Апликације &gt; Све апликације &gt; Music Player Ace Rem &gt; Батерија &gt; Неограничено, јер би то могло да доведе до заустављања услуге медија плејера.</string>
     <string name="settings">Подешавања</string>
     <string name="locale_czech">чешки</string>
     <string name="theme_pref_title">Изглед</string>

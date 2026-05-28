@@ -40,7 +40,7 @@
     <string name="error_no_queue">Няма песни в опашката.</string>
     <string name="error_bad_id">Пусни песен първо.</string>
     <string name="error_no_browser">Изтегли уеб браузер първо.</string>
-    <string name="error_fs_not_allowed">Нещо се обърка! :( Пробвай да изключиш оптимизацията на батерията в настройките: Приложения &gt; Всички приложения &gt; Music Player GO &gt; Батерия &gt; Неограничени, защото може да накара плейъра да спре.</string>
+    <string name="error_fs_not_allowed">Нещо се обърка! :( Пробвай да изключиш оптимизацията на батерията в настройките: Приложения &gt; Всички приложения &gt; Music Player Ace Rem &gt; Батерия &gt; Неограничени, защото може да накара плейъра да спре.</string>
     <string name="error_fs_not_allowed_sum">Грешка! Изклочи оптимизация на батерията за MPGO</string>
     <string name="open_details_fragment">Отвори детайли на изпълнител/папка</string>
     <string name="open_git_pref_summary">Отвори уебстраницата на проекта за повече информация :)</string>
@@ -108,7 +108,7 @@
     <string name="locale_chinese_t">Китайски (Традиционен)</string>
     <string name="locale_galician">Галисийски</string>
     <string name="locale_indonesian">Индонезийски</string>
-    <string name="perm_rationale">Дай достъп на Music Player GO до твойти файлове за да пуска музика.</string>
+    <string name="perm_rationale">Дай достъп на Music Player Ace Rem до твойти файлове за да пуска музика.</string>
     <string name="on_list_ended_pref_title">Когато листа свърши…</string>
     <string name="covers_pref_title">Вградени обложки на албумите</string>
     <string name="fast_seeking_pref_summary">Отиди напред/назад (секунди)</string>

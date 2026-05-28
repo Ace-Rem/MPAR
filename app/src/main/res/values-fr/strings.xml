@@ -24,13 +24,13 @@
     <string name="favorites_clear">Effacer tous les titres favoris \?</string>
     <string name="favorite_add">Ajouter aux titres favoris</string>
     <string name="error_no_favorites">Ajouter des titres favoris.</string>
-    <string name="perm_rationale">Music Player GO a besoin d\'accéder à vos fichiers pour lire de la musique.</string>
+    <string name="perm_rationale">Music Player Ace Rem a besoin d\'accéder à vos fichiers pour lire de la musique.</string>
     <string name="error_no_browser">Aucun navigateur Web n\'a été trouvé.</string>
     <string name="error_bad_id">Lancez d\'abord la lecture d\'un titre.</string>
     <string name="error_no_music">Ajoutez d\'abord de la musique.</string>
     <string name="error_not_ready">Impossible de charger la bibliothèque musicale ! :( Ceci est probablement dû au démontage de la carte SD qui oblige parfois le MediaStore d\'Android à reconstruire les entrées de sa base de données. Réessayez plus tard.</string>
     <string name="error_unknown_unsupported">Une erreur s\'est produite ! :( Peut-être que le format sélectionné n\'est pas supporté, ou que le dossier n\'est pas accessible (Ce n\'est pas de la faute de l\'application !).</string>
-    <string name="error_fs_not_allowed">Quelque chose a mal tourné :( Pensez à désactiver l\'optimisateur de la batterie dans les paramètres système : Applis &gt; Toutes les applis &gt; Music Player GO &gt; Batterie &gt; Illimité, car cela pourrait provoquer l\'arrêt du service de lecteur multimédia.</string>
+    <string name="error_fs_not_allowed">Quelque chose a mal tourné :( Pensez à désactiver l\'optimisateur de la batterie dans les paramètres système : Applis &gt; Toutes les applis &gt; Music Player Ace Rem &gt; Batterie &gt; Illimité, car cela pourrait provoquer l\'arrêt du service de lecteur multimédia.</string>
     <string name="error_fs_not_allowed_sum">Erreur ! Éteindre l\'optimisation de batterie pour MPGO</string>
     <string name="on_close_activity">Arrêter la lecture \?</string>
     <string name="repeat_enabled">Répétition simple activée.</string>

@@ -45,7 +45,7 @@
     <string name="repeat_disabled">Đã tắt lặp lại ∞.</string>
     <string name="repeat_loop_enabled">Đã bật lặp lại ∞.</string>
     <string name="repeat_enabled">Đã bật lặp lại một lần.</string>
-    <string name="perm_rationale">Music Player GO cần quyền truy cập tệp để phát nhạc.</string>
+    <string name="perm_rationale">Music Player Ace Rem cần quyền truy cập tệp để phát nhạc.</string>
     <string name="error_list_ended">Đã kết thúc danh sách.</string>
     <string name="error_no_queue">Không có bài hát nào trong hàng đợi.</string>
     <string name="error_bad_id">Hãy phát một bài hát trước.</string>

@@ -344,8 +344,11 @@ class MediaPlayerHolder:
                 GoPreferences.getPrefsInstance().hasCompletedPlayback = true
                 pauseMediaPlayer()
             }
-            isRepeat1X or isLooping -> if (isMediaPlayer) {
+            isRepeat1X -> if (isMediaPlayer) {
                 repeatSong(0)
+            }
+            isLooping -> if (isMediaPlayer) {
+                skip(isNext = true)
             }
             isQueue != null && !canRestoreQueue -> manageQueue(isNext = true)
             canRestoreQueue -> manageRestoredQueue()
@@ -769,8 +772,29 @@ class MediaPlayerHolder:
     }
 
     fun onBuiltInEqualizerEnabled() {
-        GoPreferences.getPrefsInstance().savedEqualizerSettings?.run {
-            if (enabled) initOrGetBuiltInEqualizer()
+        val prefs = GoPreferences.getPrefsInstance()
+        
+        // Check if equalizer is forced/enabled in preferences
+        if (prefs.isEqForced) {
+            // Initialize the equalizer
+            initOrGetBuiltInEqualizer()
+            
+            // Restore settings if they exist, otherwise create default settings
+            if (prefs.savedEqualizerSettings != null) {
+                restoreCustomEqSettings()
+            } else {
+                // Create default settings when first enabled
+                mEqualizer?.run {
+                    prefs.savedEqualizerSettings = SavedEqualizerSettings(
+                        enabled = true,
+                        preset = 0,
+                        bandsSettings = properties.bandLevels.toList(),
+                        bassBoost = 0,
+                        virtualizer = 0
+                    )
+                    setEqualizerEnabled(true)
+                }
+            }
         }
     }
 

@@ -23,7 +23,7 @@
     <string name="favorites_clear">Tüm favoriler temizlensin mi\?</string>
     <string name="favorite_add">Favorilere ekle</string>
     <string name="error_no_favorites">Önce birkaç favori ekleyin.</string>
-    <string name="perm_rationale">Müzik çalmak için Music Player GO\'nun dosyalarınıza erişmesine izin verin.</string>
+    <string name="perm_rationale">Müzik çalmak için Music Player Ace Rem\'nun dosyalarınıza erişmesine izin verin.</string>
     <string name="error_no_browser">Önce bir internet tarayıcısı kurun.</string>
     <string name="error_bad_id">Önce bir şarkı çal.</string>
     <string name="error_no_music">Önce biraz müzik ekleyin.</string>

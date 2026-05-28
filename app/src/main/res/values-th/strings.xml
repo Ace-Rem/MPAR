@@ -33,7 +33,7 @@
     <string name="error_no_browser">ไม่พบเบราว์เซอร์!</string>
     <string name="error_bad_id">เล่นเพลงก่อน!</string>
     <string name="error_no_queue">ไม่มีคิวเพลง!</string>
-    <string name="perm_rationale">Music Player GO ต้องการการเข้าถึงไฟล์ของคุณเพื่อเล่นเพลง!</string>
+    <string name="perm_rationale">Music Player Ace Rem ต้องการการเข้าถึงไฟล์ของคุณเพื่อเล่นเพลง!</string>
     <string name="repeat_enabled">เปิดใช้งานซ้ำ 1x!</string>
     <string name="repeat_loop_enabled">ทำซ้ำ &#8734;เปิดการใช้งาน!</string>
     <string name="repeat_disabled">ทำซ้ำ &#8734;พิการ!</string>

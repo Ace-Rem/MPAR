@@ -2,7 +2,7 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
 
     <!-- App name for debug and release flavors -->
-    <string name="app_name_release" tools:ignore="UnusedResources">Music Player GO</string>
+    <string name="app_name_release" tools:ignore="UnusedResources">Music Player Ace Rem</string>
     <string name="app_name_debug" tools:ignore="UnusedResources">MPAR</string>
 
     <!-- External links -->

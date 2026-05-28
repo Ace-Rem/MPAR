@@ -9,7 +9,7 @@
     <string name="repeat_disabled">∞반복 끄기.</string>
     <string name="repeat_loop_enabled">∞반복 켜기.</string>
     <string name="repeat_enabled">싱글 반복 켜기.</string>
-    <string name="perm_rationale">Music Player GO는 노래 재생을 위해 파일 접근 권한이 필요해요.</string>
+    <string name="perm_rationale">Music Player Ace Rem는 노래 재생을 위해 파일 접근 권한이 필요해요.</string>
     <string name="error_list_ended">리스트가 끝났습니다.</string>
     <string name="error_no_queue">대기열에 노래가 없습니다.</string>
     <string name="error_bad_id">노래를 먼저 재생해주세요.</string>
