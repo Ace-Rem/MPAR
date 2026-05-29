@@ -12,6 +12,7 @@
     <string name="playlist_delete_confirm">Delete %1$s?</string>
     <string name="playlist_name_hint">Playlist name</string>
     <string name="create_playlist">+ Create playlist</string>
+    <string name="drag_to_reorder">Drag to reorder</string>
     <string name="on_close_activity">Stop playback?</string>
     <string name="queue_songs_clear">Clear queue?</string>
     <string name="favorites_clear">Clear all favorites?</string>

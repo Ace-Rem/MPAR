@@ -10,7 +10,7 @@ import com.acerem.musicplayerar.data.playlists.PlaylistSongEntity
 
 @Database(
     entities = [PlaylistEntity::class, PlaylistSongEntity::class],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 abstract class MusicDatabase : RoomDatabase() {
@@ -27,7 +27,7 @@ abstract class MusicDatabase : RoomDatabase() {
                     context.applicationContext,
                     MusicDatabase::class.java,
                     "music_player_go.db"
-                ).build().also { INSTANCE = it }
+                ).addMigrations(MIGRATION_1_2).build().also { INSTANCE = it }
             }
         }
     }

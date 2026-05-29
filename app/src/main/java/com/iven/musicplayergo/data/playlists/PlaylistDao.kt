@@ -38,7 +38,8 @@ data class PlaylistEntity(
 data class PlaylistSongEntity(
     val playlistId: Long,
     val songId: Long,
-    val addedAt: Long = System.currentTimeMillis()
+    val addedAt: Long = System.currentTimeMillis(),
+    val position: Int = 0
 )
 
 data class PlaylistWithEntries(
@@ -76,4 +77,7 @@ interface PlaylistDao {
     // === CHÈN THÊM ĐOẠN NÀY ===
     @Query("DELETE FROM playlist_songs WHERE playlistId = :playlistId AND songId IN (:songIds)")
     suspend fun deletePlaylistSongs(playlistId: Long, songIds: List<Long>)
+
+    @Query("UPDATE playlist_songs SET position = :position WHERE playlistId = :playlistId AND songId = :songId")
+    suspend fun updateSongPosition(playlistId: Long, songId: Long, position: Int)
 }

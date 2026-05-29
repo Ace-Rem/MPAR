@@ -9,6 +9,7 @@ import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.Menu
 import android.view.MenuItem
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.widget.LinearLayout
@@ -40,6 +41,7 @@ import com.acerem.musicplayerar.models.Playlist
 import com.acerem.musicplayerar.player.MediaPlayerHolder
 import com.acerem.musicplayerar.ui.ItemSwipeCallback
 import com.acerem.musicplayerar.ui.MediaControlInterface
+import com.acerem.musicplayerar.ui.PlaylistItemTouchCallback
 import com.acerem.musicplayerar.ui.SelectionStateController
 import com.acerem.musicplayerar.ui.UIControlInterface
 import com.acerem.musicplayerar.utils.Lists
@@ -83,6 +85,7 @@ class DetailsFragment : Fragment(), SearchView.OnQueryTextListener {
     private var actionMode: ActionMode? = null
     private val isActionMode get() = actionMode != null
     private val mSelectionController = SelectionStateController<Long>()
+    private val mPlaylistMutableSongs = mutableListOf<Music>()  
 
     private lateinit var mSortMenuItem: MenuItem
     private var mSongsSorting = Lists.getDefSortingMode()
@@ -99,8 +102,19 @@ class DetailsFragment : Fragment(), SearchView.OnQueryTextListener {
 
     @SuppressLint("NotifyDataSetChanged")
     fun swapSelectedSong(songId: Long?) {
+        val oldSelectedPosition = mSelectedSongPosition
         mSelectedSongId = songId
-        _detailsFragmentBinding?.songsRv?.adapter?.notifyDataSetChanged()
+        
+        // Find new position of selected song
+        mSongsList?.indexOfFirst { song -> song.id == songId }?.let { newPosition ->
+            mSelectedSongPosition = newPosition
+            
+            // Only notify the items that changed to preserve scroll position
+            if (oldSelectedPosition != RecyclerView.NO_POSITION) {
+                _detailsFragmentBinding?.songsRv?.adapter?.notifyItemChanged(oldSelectedPosition)
+            }
+            _detailsFragmentBinding?.songsRv?.adapter?.notifyItemChanged(newPosition)
+        }
     }
 
     override fun onAttach(context: Context) {
@@ -413,10 +427,23 @@ class DetailsFragment : Fragment(), SearchView.OnQueryTextListener {
         _detailsFragmentBinding?.songsRv?.run {
 
             setHasFixedSize(true)
-            adapter = SongsAdapter()
+            val songsAdapter = SongsAdapter()
+            adapter = songsAdapter
             FastScrollerBuilder(this).useMd2Style().build()
 
-            if (!sLaunchedByFolderView && !sLaunchedByAlbumView && !sLaunchedByPlaylistView) {
+            if (sLaunchedByPlaylistView) {
+                // SỬA ĐOẠN NÀY: Truyền tham chiếu mPlaylistMutableSongs vào Callback
+                val playlistTouchCallback = PlaylistItemTouchCallback(
+                    songs = mPlaylistMutableSongs, 
+                    onReorder = { _, _ ->
+                        // Save reordered songs to database
+                        savPlaylistSongOrder()
+                    }
+                )
+                val itemTouchHelper = ItemTouchHelper(playlistTouchCallback)
+                itemTouchHelper.attachToRecyclerView(this)
+                songsAdapter.setItemTouchHelper(itemTouchHelper)
+            } else if (!sLaunchedByFolderView && !sLaunchedByAlbumView) {
                 ItemTouchHelper(ItemSwipeCallback(isQueueDialog = false, isFavoritesDialog = false) { viewHolder: RecyclerView.ViewHolder,
                                                                                                       direction: Int ->
                     handleSwipeAction(viewHolder, direction)
@@ -453,10 +480,13 @@ class DetailsFragment : Fragment(), SearchView.OnQueryTextListener {
     @SuppressLint("NotifyDataSetChanged")
     private fun setSongsDataSource(musicList: List<Music>?, updateSongs: Boolean, updateAdapter: Boolean) {
 
-        val songs = if (sLaunchedByFolderView) {
+        val songs = if (sLaunchedByPlaylistView) {
+            // SỬA ĐOẠN NÀY: Nạp dữ liệu vào biến mutable chung thay vì dùng musicList gốc
+            mPlaylistMutableSongs.clear()
+            musicList?.let { mPlaylistMutableSongs.addAll(it) }
+            mPlaylistMutableSongs
+        } else if (sLaunchedByFolderView) {
             Lists.getSortedMusicListForFolder(mSongsSorting, musicList?.toMutableList())
-        } else if (sLaunchedByPlaylistView) {
-            Lists.getSortedMusicListForAllMusic(mSongsSorting, musicList?.toMutableList())
         } else {
             Lists.getSortedMusicList(mSongsSorting, musicList?.toMutableList())
         }
@@ -819,6 +849,13 @@ private fun updateActionModeState() {
         }
     }
 
+    private fun savPlaylistSongOrder() {
+        // Save the reordered songs to database
+        if (sLaunchedByPlaylistView && mSelectedPlaylistId != null && !mSongsList.isNullOrEmpty()) {
+            mMusicViewModel.reorderPlaylistSongs(mSelectedPlaylistId!!, mSongsList!!)
+        }
+    }
+
     private inner class AlbumsAdapter : RecyclerView.Adapter<AlbumsAdapter.AlbumsHolder>() {
 
         private val mMediaControlInterface = requireActivity() as MediaControlInterface
@@ -892,7 +929,7 @@ private fun updateActionModeState() {
         }
     }
 
-    private inner class SongsAdapter: RecyclerView.Adapter<SongsAdapter.SongsHolder>() {
+    private inner class SongsAdapter(private var itemTouchHelper: ItemTouchHelper? = null): RecyclerView.Adapter<SongsAdapter.SongsHolder>() {
 
         val defaultTextColor = Theming.resolveColorAttr(requireContext(), android.R.attr.textColorPrimary)
         val accentTextColor = Theming.resolveThemeColor(resources)
@@ -952,6 +989,17 @@ private fun updateActionModeState() {
                         duration
                     }
 
+                    // Show drag handle only for playlist view
+                    dragHandle?.handleViewVisibility(show = sLaunchedByPlaylistView)
+                    
+                    // Set drag handle touch listener - start drag on first touch (0ms delay)
+                    dragHandle?.setOnTouchListener { _, event ->
+                        if (event.action == MotionEvent.ACTION_DOWN) {
+                            itemTouchHelper?.startDrag(this@SongsHolder)
+                        }
+                        false
+                    }
+
                     root.setOnClickListener {
                         itemSong?.id?.let { songId ->
                             if (isActionMode) {
@@ -1003,6 +1051,10 @@ private fun updateActionModeState() {
                     )
                 }
             }
+        }
+
+        fun setItemTouchHelper(helper: ItemTouchHelper) {
+            itemTouchHelper = helper
         }
     }
 

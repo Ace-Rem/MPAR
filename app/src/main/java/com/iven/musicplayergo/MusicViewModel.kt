@@ -301,6 +301,14 @@ class MusicViewModel(application: Application): AndroidViewModel(application) {
         }
     }
 
+    fun reorderPlaylistSongs(playlistId: Long, songs: List<Music>) {
+        mUiScope.launch {
+            withContext(mIoDispatcher) {
+                mPlaylistRepository.reorderPlaylistSongs(playlistId, songs)
+            }
+        }
+    }
+
     private fun updatePreferences() {
         // update queue/favorites by updating moved songs id, albumId
         // and filtering out deleted songs

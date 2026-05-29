@@ -30,11 +30,23 @@ class PlaylistRepository(
     suspend fun addSongsToPlaylist(playlistId: Long, songs: List<Music>) {
         val entries = songs.mapNotNull { song ->
             song.id?.let { songId ->
-                PlaylistSongEntity(playlistId = playlistId, songId = songId)
+                PlaylistSongEntity(
+                    playlistId = playlistId, 
+                    songId = songId,
+                    position = 0  // Will be updated after insertion
+                )
             }
         }
         if (entries.isNotEmpty()) {
             playlistDao.insertPlaylistSongs(entries)
+        }
+    }
+
+    suspend fun reorderPlaylistSongs(playlistId: Long, songs: List<Music>) {
+        songs.forEachIndexed { index, music ->
+            music.id?.let { songId ->
+                playlistDao.updateSongPosition(playlistId, songId, index)
+            }
         }
     }
 
@@ -58,7 +70,7 @@ class PlaylistRepository(
 
     private fun PlaylistWithEntries.toPlaylist(deviceSongs: List<Music>): Playlist {
         val songsById = deviceSongs.associateBy { it.id }
-        val sortedEntries = entries.sortedBy { it.addedAt }
+        val sortedEntries = entries.sortedBy { it.position }
         val songs = sortedEntries.mapNotNull { entry -> songsById[entry.songId] }
         return Playlist(
             id = playlist.id,
