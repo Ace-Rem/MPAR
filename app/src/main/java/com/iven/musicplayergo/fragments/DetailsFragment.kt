@@ -993,9 +993,10 @@ private fun updateActionModeState() {
                     dragHandle?.handleViewVisibility(show = sLaunchedByPlaylistView)
                     
                     // Set drag handle touch listener - start drag on first touch (0ms delay)
-                    dragHandle?.setOnTouchListener { _, event ->
+                    dragHandle?.setOnTouchListener { v, event ->
                         if (event.action == MotionEvent.ACTION_DOWN) {
                             itemTouchHelper?.startDrag(this@SongsHolder)
+                            return@setOnTouchListener true // Bắt chết sự kiện chạm tại đây
                         }
                         false
                     }

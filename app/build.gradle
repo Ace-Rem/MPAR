@@ -9,8 +9,8 @@ android {
         applicationId "com.acerem.musicplayerar"
         minSdkVersion 21
         targetSdkVersion 33
-        versionCode 188
-        versionName "2.0.4"
+        versionCode 189
+        versionName "2.0.5"
 
         vectorDrawables.useSupportLibrary true
     }

@@ -194,6 +194,6 @@
             android:background="?android:attr/actionBarItemBackground"
             android:contentDescription="@string/queue"
             android:padding="8dp"
-            app:srcCompat="@drawable/ic_queue_add" />
+            app:srcCompat="@drawable/ic_queue_music" />
     </LinearLayout>
 </LinearLayout>
